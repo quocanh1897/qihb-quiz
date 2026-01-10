@@ -8,8 +8,8 @@
     "quizLengths": {
         "short": {
             "label": "Ngắn",
-            "count": 3,
-            "description": "3 câu"
+            "count": 5,
+            "description": "5 câu"
         },
         "medium": {
             "label": "Trung",

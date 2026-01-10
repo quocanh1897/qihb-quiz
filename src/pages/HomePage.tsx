@@ -122,6 +122,7 @@ export function HomePage() {
                     <p>Ứng dụng luyện từ vựng tiếng Trung</p>
                     <p className="mt-1">HSK Level 3 • {vocabulary.length} từ vựng</p>
                     <p className="mt-1">© quocanh1897@gmail.com</p>
+                    <p className="mt-2 text-xs">v1.0.0</p>
                 </div>
             </div>
         </Layout>
