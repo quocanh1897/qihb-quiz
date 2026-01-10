@@ -1,13 +1,13 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, Zap, Gauge, Timer, Infinity, Play } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { ChevronLeft, Zap, Gauge, Timer, Infinity, Play, CheckCircle, GitCompare, PenLine, Shuffle, ListOrdered } from 'lucide-react';
 import { Layout, PageHeader } from '@/components/common/Layout';
 import { Button } from '@/components/common/Button';
 import { Card } from '@/components/common/Card';
 import { useVocabularyStore } from '@/stores/vocabularyStore';
 import { useQuizStore } from '@/stores/quizStore';
-import { QUIZ_LENGTHS, MC_CONFIG, MATCHING_CONFIG, FILL_BLANK_CONFIG } from '@/config';
-import type { QuizLength } from '@/types';
+import { QUIZ_LENGTHS, MC_CONFIG, MATCHING_CONFIG, FILL_BLANK_CONFIG, SENTENCE_ARRANGEMENT_CONFIG } from '@/config';
+import type { QuizLength, QuestionType } from '@/types';
 
 const QUIZ_ICONS: Record<QuizLength, typeof Zap> = {
     short: Zap,
@@ -24,8 +24,34 @@ const QUIZ_OPTIONS = (Object.keys(QUIZ_LENGTHS) as QuizLength[]).map(length => (
     icon: QUIZ_ICONS[length],
 }));
 
+const QUESTION_TYPE_INFO: Record<QuestionType, { label: string; icon: typeof CheckCircle; description: string }> = {
+    'multiple-choice': {
+        label: 'Trắc nghiệm',
+        icon: CheckCircle,
+        description: 'Chọn đáp án đúng trong các lựa chọn',
+    },
+    'matching': {
+        label: 'Nối từ',
+        icon: GitCompare,
+        description: 'Ghép từ với phiên âm và nghĩa tương ứng',
+    },
+    'fill-blank': {
+        label: 'Điền từ',
+        icon: PenLine,
+        description: 'Điền từ thích hợp vào chỗ trống trong câu',
+    },
+    'sentence-arrangement': {
+        label: 'Sắp xếp câu',
+        icon: ListOrdered,
+        description: 'Sắp xếp các từ thành câu hoàn chỉnh',
+    },
+};
+
 export function QuizSetupPage() {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const questionType = searchParams.get('type') as QuestionType | null;
+
     const [selectedLength, setSelectedLength] = useState<QuizLength>('medium');
     const { vocabulary } = useVocabularyStore();
     const { startQuiz } = useQuizStore();
@@ -36,9 +62,28 @@ export function QuizSetupPage() {
             return;
         }
 
-        startQuiz(vocabulary, selectedLength);
+        startQuiz(vocabulary, selectedLength, questionType || undefined);
         navigate('/exam');
     };
+
+    // Get title based on question type
+    const getTitle = () => {
+        if (questionType && QUESTION_TYPE_INFO[questionType]) {
+            return `Bài thi ${QUESTION_TYPE_INFO[questionType].label}`;
+        }
+        return 'Bài thi ngẫu nhiên';
+    };
+
+    const getSubtitle = () => {
+        if (questionType && QUESTION_TYPE_INFO[questionType]) {
+            return QUESTION_TYPE_INFO[questionType].description;
+        }
+        return 'Lựa chọn số lượng câu hỏi phù hợp với thời gian của bạn';
+    };
+
+    const TypeIcon = questionType && QUESTION_TYPE_INFO[questionType]
+        ? QUESTION_TYPE_INFO[questionType].icon
+        : Shuffle;
 
     const getOptionStyle = (length: QuizLength) => {
         const isSelected = selectedLength === length;
@@ -64,9 +109,20 @@ export function QuizSetupPage() {
                 Quay lại
             </Button>
 
+            {/* Quiz Type Badge */}
+            <div className="flex items-center gap-2 mb-4">
+                <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium ${questionType
+                    ? 'bg-primary-100 text-primary-700'
+                    : 'bg-secondary-100 text-gray-700'
+                    }`}>
+                    <TypeIcon size={16} />
+                    {getTitle()}
+                </div>
+            </div>
+
             <PageHeader
                 title="Chọn độ dài bài thi"
-                subtitle="Lựa chọn số lượng câu hỏi phù hợp với thời gian của bạn"
+                subtitle={getSubtitle()}
             />
 
             {/* Quiz Length Options */}
@@ -114,10 +170,21 @@ export function QuizSetupPage() {
                 <div className="text-sm text-gray-600">
                     <p className="font-medium text-charcoal mb-2">📌 Thông tin bài thi:</p>
                     <ul className="space-y-1 ml-4 list-disc">
-                        <li>Gồm câu hỏi <strong>trắc nghiệm</strong>, <strong>điền ô trống</strong> và <strong>nối từ</strong></li>
-                        <li>Mỗi câu trắc nghiệm có {MC_CONFIG.optionCount} lựa chọn ({MC_CONFIG.optionLabels[0]}-{MC_CONFIG.optionLabels[MC_CONFIG.optionLabels.length - 1]})</li>
-                        <li>Mỗi câu điền ô trống có {FILL_BLANK_CONFIG.optionCount} lựa chọn</li>
-                        <li>Mỗi câu nối từ cần ghép {MATCHING_CONFIG.minItems}-{MATCHING_CONFIG.maxItems} cặp từ-phiên âm-nghĩa</li>
+                        {!questionType && (
+                            <li>Gồm câu hỏi <strong>trắc nghiệm</strong>, <strong>điền từ</strong>, <strong>nối từ</strong> và <strong>sắp xếp câu</strong></li>
+                        )}
+                        {(!questionType || questionType === 'multiple-choice') && (
+                            <li>Mỗi câu trắc nghiệm có {MC_CONFIG.optionCount} lựa chọn ({MC_CONFIG.optionLabels[0]}-{MC_CONFIG.optionLabels[MC_CONFIG.optionLabels.length - 1]})</li>
+                        )}
+                        {(!questionType || questionType === 'fill-blank') && (
+                            <li>Mỗi câu điền từ có {FILL_BLANK_CONFIG.optionCount} lựa chọn</li>
+                        )}
+                        {(!questionType || questionType === 'matching') && (
+                            <li>Mỗi câu nối từ cần ghép {MATCHING_CONFIG.minItems}-{MATCHING_CONFIG.maxItems} cặp từ-phiên âm-nghĩa</li>
+                        )}
+                        {(!questionType || questionType === 'sentence-arrangement') && (
+                            <li>Mỗi câu sắp xếp có {SENTENCE_ARRANGEMENT_CONFIG.minWords}-{SENTENCE_ARRANGEMENT_CONFIG.maxWords} từ cần sắp xếp</li>
+                        )}
                         <li>Thời gian làm bài không giới hạn</li>
                     </ul>
                 </div>

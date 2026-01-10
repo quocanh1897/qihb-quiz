@@ -6,13 +6,16 @@ import type {
     MCAnswer,
     MatchingAnswer,
     FillBlankAnswer,
+    SentenceArrangementAnswer,
     FrequencyRecord,
     QuizResult,
     QuizLength,
+    QuestionType,
     VocabularyEntry,
     MultipleChoiceQuestion,
     MatchingQuestion,
     FillBlankQuestion,
+    SentenceArrangementQuestion,
 } from '@/types';
 import { generateQuiz, getQuestionVocabularyIds } from '@/lib/quizGenerator';
 import { saveQuizHistory, updateGlobalWordStats, getWordStats, calculateProgressPoints } from '@/lib/db';
@@ -27,7 +30,7 @@ interface QuizState {
     result: QuizResult | null;
 
     // Actions
-    startQuiz: (vocabulary: VocabularyEntry[], length: QuizLength) => void;
+    startQuiz: (vocabulary: VocabularyEntry[], length: QuizLength, questionType?: QuestionType) => void;
     submitAnswer: (answer: Answer) => void;
     nextQuestion: () => void;
     previousQuestion: () => void;
@@ -51,8 +54,8 @@ export const useQuizStore = create<QuizState>((set, get) => ({
     isSubmitted: false,
     result: null,
 
-    startQuiz: (vocabulary: VocabularyEntry[], length: QuizLength) => {
-        const quiz = generateQuiz(vocabulary, length);
+    startQuiz: (vocabulary: VocabularyEntry[], length: QuizLength, questionType?: QuestionType) => {
+        const quiz = generateQuiz(vocabulary, length, questionType);
 
         // Initialize frequency tracking for all words in quiz
         const frequency = new Map<string, FrequencyRecord>();
@@ -121,6 +124,19 @@ export const useQuizStore = create<QuizState>((set, get) => ({
                 if (record) {
                     record.appearances++;
                     if ((answer as FillBlankAnswer).isCorrect) {
+                        record.correctAnswers++;
+                    } else {
+                        record.incorrectAnswers++;
+                    }
+                    record.accuracy = (record.correctAnswers / record.appearances) * 100;
+                }
+            } else if (question.type === 'sentence-arrangement') {
+                const saQuestion = question as SentenceArrangementQuestion;
+                const saAnswer = answer as SentenceArrangementAnswer;
+                const record = updatedFrequency.get(saQuestion.vocabularyEntry.id);
+                if (record) {
+                    record.appearances++;
+                    if (saAnswer.isCorrect) {
                         record.correctAnswers++;
                     } else {
                         record.incorrectAnswers++;
@@ -208,6 +224,8 @@ export const useQuizStore = create<QuizState>((set, get) => ({
         let matchingCount = 0;
         let fillBlankTotalTime = 0;
         let fillBlankCount = 0;
+        let sentenceArrangementTotalTime = 0;
+        let sentenceArrangementCount = 0;
 
         for (const answer of answers) {
             if (answer.type === 'multiple-choice') {
@@ -218,6 +236,11 @@ export const useQuizStore = create<QuizState>((set, get) => ({
                 if (answer.isCorrect) correctCount++;
                 fillBlankTotalTime += answer.timeSpent;
                 fillBlankCount++;
+            } else if (answer.type === 'sentence-arrangement') {
+                // Only count as correct if 100% of words are in correct position
+                if (answer.isCorrect) correctCount++;
+                sentenceArrangementTotalTime += answer.timeSpent;
+                sentenceArrangementCount++;
             } else {
                 correctCount += answer.correctCount;
                 matchingTotalTime += answer.timeSpent;
@@ -226,7 +249,11 @@ export const useQuizStore = create<QuizState>((set, get) => ({
         }
 
         const totalQuestions = currentQuiz.questions.reduce((sum, q) => {
-            return sum + (q.type === 'matching' ? (q as MatchingQuestion).items.length : 1);
+            if (q.type === 'matching') {
+                return sum + (q as MatchingQuestion).items.length;
+            }
+            // Sentence arrangement counts as 1 question (not by word count)
+            return sum + 1;
         }, 0);
 
         // Calculate progress points for each word and update global stats

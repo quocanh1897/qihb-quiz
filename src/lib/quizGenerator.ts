@@ -5,14 +5,17 @@ import type {
     MultipleChoiceQuestion,
     MatchingQuestion,
     FillBlankQuestion,
+    SentenceArrangementQuestion,
     MultipleChoiceOption,
     MatchingItem,
     FillBlankOption,
+    SentenceWord,
     QuizLength,
+    QuestionType,
     MCVariant,
 } from '@/types';
 import { generateQuestionId, generateQuizId } from './hashUtils';
-import { MC_CONFIG, MATCHING_CONFIG, FILL_BLANK_CONFIG, QUIZ_LENGTHS, HSK_WEIGHTS, getQuestionText } from '@/config';
+import { MC_CONFIG, MATCHING_CONFIG, FILL_BLANK_CONFIG, SENTENCE_ARRANGEMENT_CONFIG, QUIZ_LENGTHS, HSK_WEIGHTS, QUESTION_TYPE_WEIGHTS, getQuestionText } from '@/config';
 
 /**
  * Shuffle array using Fisher-Yates algorithm
@@ -69,6 +72,57 @@ function getOptionValue(entry: VocabularyEntry, variant: MCVariant): string {
 }
 
 /**
+ * Get the length to match for distractors based on variant
+ * For word-based answers: use word length
+ * For pinyin-based answers: use pinyin length  
+ * For meaning-based answers: use first meaning length
+ */
+function getMatchLength(entry: VocabularyEntry, variant: MCVariant): number {
+    switch (variant) {
+        case 'word-to-pinyin':
+        case 'meaning-to-pinyin':
+            return entry.pinyin.length;
+        case 'pinyin-to-word':
+        case 'meaning-to-word':
+            return entry.word.length;
+        case 'word-to-meaning':
+        case 'pinyin-to-meaning':
+            return entry.meaning[0].length;
+        default:
+            return entry.word.length;
+    }
+}
+
+/**
+ * Find distractors with matching length, gradually expanding tolerance if needed
+ */
+function findMatchingDistractors(
+    vocabulary: VocabularyEntry[],
+    correct: VocabularyEntry,
+    variant: MCVariant,
+    count: number,
+    maxTolerance: number
+): VocabularyEntry[] {
+    const targetLength = getMatchLength(correct, variant);
+    const others = vocabulary.filter(v => v.id !== correct.id);
+
+    // Try to find exact matches first, then gradually expand tolerance
+    for (let tolerance = 0; tolerance <= maxTolerance; tolerance++) {
+        const candidates = others.filter(v => {
+            const len = getMatchLength(v, variant);
+            return Math.abs(len - targetLength) <= tolerance;
+        });
+
+        if (candidates.length >= count) {
+            return selectRandom(candidates, count);
+        }
+    }
+
+    // Fallback: use all available vocabulary if still not enough
+    return selectRandom(others, Math.min(count, others.length));
+}
+
+/**
  * Generate a multiple choice question
  */
 export function generateMultipleChoice(
@@ -84,25 +138,20 @@ export function generateMultipleChoice(
         return null;
     }
 
+    // Randomly select variant first (so we can match length based on answer type)
+    const variant = variants[Math.floor(Math.random() * variants.length)];
+
     // Select correct answer
     const correct = available[Math.floor(Math.random() * available.length)];
 
-    // Find similar-length words for distractors (±tolerance character)
-    const wordLength = correct.word.length;
-    let distractorPool = vocabulary.filter(
-        v => v.id !== correct.id && Math.abs(v.word.length - wordLength) <= wordLengthTolerance
+    // Find distractors with matching length (exact match preferred, then expand)
+    const distractors = findMatchingDistractors(
+        vocabulary,
+        correct,
+        variant,
+        distractorCount,
+        wordLengthTolerance
     );
-
-    // If not enough similar length, expand pool
-    if (distractorPool.length < distractorCount) {
-        distractorPool = vocabulary.filter(v => v.id !== correct.id);
-    }
-
-    // Select random distractors
-    const distractors = selectRandom(distractorPool, distractorCount);
-
-    // Randomly select variant
-    const variant = variants[Math.floor(Math.random() * variants.length)];
 
     // Create options
     const allEntries = shuffle([correct, ...distractors]);
@@ -175,6 +224,34 @@ export function generateMatching(
 }
 
 /**
+ * Find distractors with matching word length for fill-blank questions
+ * Prioritizes exact match, then gradually expands tolerance
+ */
+function findFillBlankDistractors(
+    vocabulary: VocabularyEntry[],
+    correct: VocabularyEntry,
+    count: number,
+    maxTolerance: number
+): VocabularyEntry[] {
+    const targetLength = correct.word.length;
+    const others = vocabulary.filter(v => v.id !== correct.id);
+
+    // Try exact match first, then gradually expand tolerance
+    for (let tolerance = 0; tolerance <= maxTolerance; tolerance++) {
+        const candidates = others.filter(v =>
+            Math.abs(v.word.length - targetLength) <= tolerance
+        );
+
+        if (candidates.length >= count) {
+            return selectRandom(candidates, count);
+        }
+    }
+
+    // Fallback: use all available vocabulary
+    return selectRandom(others, Math.min(count, others.length));
+}
+
+/**
  * Generate a fill-in-the-blank question
  */
 export function generateFillBlank(
@@ -204,19 +281,13 @@ export function generateFillBlank(
         return null;
     }
 
-    // Find similar-length words for distractors
-    const wordLength = correct.word.length;
-    let distractorPool = vocabulary.filter(
-        v => v.id !== correct.id && Math.abs(v.word.length - wordLength) <= wordLengthTolerance
+    // Find distractors with matching word length (exact match preferred)
+    const distractors = findFillBlankDistractors(
+        vocabulary,
+        correct,
+        distractorCount,
+        wordLengthTolerance
     );
-
-    // If not enough similar length, expand pool
-    if (distractorPool.length < distractorCount) {
-        distractorPool = vocabulary.filter(v => v.id !== correct.id);
-    }
-
-    // Select random distractors
-    const distractors = selectRandom(distractorPool, distractorCount);
 
     // Create options
     const allEntries = shuffle([correct, ...distractors]);
@@ -237,6 +308,156 @@ export function generateFillBlank(
         blankLength: correct.word.length,
         correctAnswer: correct,
         options,
+    };
+}
+
+/**
+ * Split a Chinese sentence into words using pinyin as word boundary hints
+ * Punctuation is attached to the preceding word
+ */
+function splitChineseSentence(sentence: string, pinyin: string): string[] {
+    // Chinese punctuation marks
+    const punctuation = /[。，！？、；：""''（）《》【】…—·]/;
+
+    // Split pinyin by spaces to get word count hint
+    const pinyinWords = pinyin.trim().split(/\s+/).filter(w => w.length > 0);
+
+    // Extract characters from sentence (excluding punctuation for counting)
+    const chars: string[] = [];
+    const punctuationPositions: Map<number, string> = new Map();
+
+    let charIndex = 0;
+    for (let i = 0; i < sentence.length; i++) {
+        const char = sentence[i];
+        if (punctuation.test(char)) {
+            // Store punctuation to attach to previous word
+            punctuationPositions.set(charIndex - 1, (punctuationPositions.get(charIndex - 1) || '') + char);
+        } else {
+            chars.push(char);
+            charIndex++;
+        }
+    }
+
+    // If pinyin word count doesn't help, split character by character
+    if (pinyinWords.length === 0 || chars.length === 0) {
+        return sentence.split('').filter(c => c.trim());
+    }
+
+    // Estimate character count per pinyin word
+    // This is a heuristic: most pinyin syllables = 1 Chinese character
+    const words: string[] = [];
+    let currentCharIndex = 0;
+
+    for (let i = 0; i < pinyinWords.length && currentCharIndex < chars.length; i++) {
+        const pinyinWord = pinyinWords[i];
+        // Count syllables in pinyin (rough estimate by counting vowels groups)
+        // Each syllable roughly corresponds to one Chinese character
+        const syllableCount = (pinyinWord.match(/[aeiouüāáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜ]+/gi) || []).length || 1;
+
+        // Take that many characters
+        const charCount = Math.min(syllableCount, chars.length - currentCharIndex);
+        let word = chars.slice(currentCharIndex, currentCharIndex + charCount).join('');
+
+        // Attach any punctuation that follows this word
+        const lastCharPos = currentCharIndex + charCount - 1;
+        if (punctuationPositions.has(lastCharPos)) {
+            word += punctuationPositions.get(lastCharPos);
+        }
+
+        if (word) {
+            words.push(word);
+        }
+        currentCharIndex += charCount;
+    }
+
+    // If there are remaining characters, add them as the last word
+    if (currentCharIndex < chars.length) {
+        let remainingWord = chars.slice(currentCharIndex).join('');
+        // Attach any trailing punctuation
+        for (let i = currentCharIndex; i < chars.length; i++) {
+            if (punctuationPositions.has(i)) {
+                remainingWord += punctuationPositions.get(i);
+            }
+        }
+        if (remainingWord) {
+            words.push(remainingWord);
+        }
+    }
+
+    return words.length > 0 ? words : [sentence];
+}
+
+/**
+ * Generate a sentence arrangement question
+ */
+export function generateSentenceArrangement(
+    vocabulary: VocabularyEntry[],
+    usedIds: Set<string>
+): SentenceArrangementQuestion | null {
+    const { minWords, maxWords } = SENTENCE_ARRANGEMENT_CONFIG;
+
+    // Filter entries that have examples with pinyin
+    const available = vocabulary.filter(v => {
+        if (usedIds.has(v.id)) return false;
+        if (!v.example || !v.examplePinyin || !v.exampleMeaning) return false;
+        // The example should have enough content
+        return v.example.length >= 4;
+    });
+
+    if (available.length < 1) {
+        return null;
+    }
+
+    // Try to find a suitable sentence (not too short, not too long)
+    let selected: VocabularyEntry | null = null;
+    let words: string[] = [];
+
+    // Shuffle and try to find a good candidate
+    const shuffled = shuffle([...available]);
+    for (const entry of shuffled) {
+        const splitWords = splitChineseSentence(entry.example, entry.examplePinyin);
+        if (splitWords.length >= minWords && splitWords.length <= maxWords) {
+            selected = entry;
+            words = splitWords;
+            break;
+        }
+    }
+
+    // If no suitable sentence found, use first available with whatever word count
+    if (!selected) {
+        selected = shuffled[0];
+        words = splitChineseSentence(selected.example, selected.examplePinyin);
+
+        // If still too few words, try character-by-character split
+        if (words.length < minWords) {
+            words = selected.example.split('').filter(c => c.trim() && !/[。，！？、；：""''（）《》【】…—·]/.test(c));
+            // Attach punctuation to last word
+            const lastPunctuation = selected.example.match(/[。，！？、；：""''（）《》【】…—·]+$/);
+            if (lastPunctuation && words.length > 0) {
+                words[words.length - 1] += lastPunctuation[0];
+            }
+        }
+    }
+
+    // Create word objects with positions
+    const sentenceWords: SentenceWord[] = words.map((text, index) => ({
+        id: `${generateQuestionId()}-${index}`,
+        text,
+        position: index,
+    }));
+
+    // Shuffle words for the question
+    const shuffledWords = shuffle([...sentenceWords]);
+
+    return {
+        id: generateQuestionId(),
+        type: 'sentence-arrangement',
+        correctSentence: selected.example,
+        sentencePinyin: selected.examplePinyin,
+        sentenceMeaning: selected.exampleMeaning,
+        words: sentenceWords,
+        shuffledWords,
+        vocabularyEntry: selected,
     };
 }
 
@@ -276,12 +497,15 @@ function getVocabPoolByLevel(
 
 /**
  * Generate a complete quiz with all question types
- * Strategy: Questions are distributed by HSK level based on configurable weights
- * Default weights: HSK1=2, HSK2=3, HSK3=5 (20%, 30%, 50%)
+ * Strategy: 
+ * - Question types distributed by configurable weights (multipleChoice, matching, fillBlank)
+ * - HSK levels distributed by configurable weights (hsk1, hsk2, hsk3)
+ * - If questionType is specified, generates only that type of questions
  */
 export function generateQuiz(
     vocabulary: VocabularyEntry[],
-    length: QuizLength
+    length: QuizLength,
+    questionType?: QuestionType
 ): Quiz {
     const questionCount = Math.min(QUIZ_LENGTHS[length].count, vocabulary.length);
     const questions: Question[] = [];
@@ -295,21 +519,39 @@ export function generateQuiz(
     // If no HSK info available, fall back to using all vocabulary
     const hasHskData = hsk1Vocab.length > 0 || hsk2Vocab.length > 0 || hsk3Vocab.length > 0;
 
-    // There are 3 question types now
-    // Ensure at least 1 of each type, then distribute the rest randomly
-    const minPerType = 1;
+    // Calculate question type counts
+    let mcCount: number;
+    let matchingCount: number;
+    let fillBlankCount: number;
+    let sentenceArrangementCount: number;
 
-    // Calculate max for each type (at least 1)
-    const remainingAfterMin = Math.max(0, questionCount - 3); // 3 types × 1 min each
+    if (questionType) {
+        // Single type quiz - all questions are of the specified type
+        mcCount = questionType === 'multiple-choice' ? questionCount : 0;
+        matchingCount = questionType === 'matching' ? questionCount : 0;
+        fillBlankCount = questionType === 'fill-blank' ? questionCount : 0;
+        sentenceArrangementCount = questionType === 'sentence-arrangement' ? questionCount : 0;
+    } else {
+        // Mixed quiz - distribute by configurable weights
+        const { multipleChoice: mcWeight, matching: matchingWeight, fillBlank: fillBlankWeight, sentenceArrangement: saWeight } = QUESTION_TYPE_WEIGHTS;
+        const totalWeight = mcWeight + matchingWeight + fillBlankWeight + saWeight;
 
-    // Random distribution for remaining questions
-    const matchingExtra = Math.floor(Math.random() * Math.min(remainingAfterMin, Math.floor(questionCount / 3)));
-    const fillBlankExtra = Math.floor(Math.random() * Math.min(remainingAfterMin - matchingExtra, Math.floor(questionCount / 3)));
-    const mcExtra = remainingAfterMin - matchingExtra - fillBlankExtra;
+        // Calculate counts based on weights (ensure at least 1 of each type if questionCount >= 4)
+        const numTypes = 4;
+        const minPerType = questionCount >= numTypes ? 1 : 0;
+        const remainingAfterMin = Math.max(0, questionCount - (minPerType * numTypes));
 
-    const matchingCount = minPerType + matchingExtra;
-    const fillBlankCount = minPerType + fillBlankExtra;
-    const mcCount = minPerType + mcExtra;
+        // Distribute remaining questions by weight
+        const mcExtra = Math.round((remainingAfterMin * mcWeight) / totalWeight);
+        const matchingExtra = Math.round((remainingAfterMin * matchingWeight) / totalWeight);
+        const saExtra = Math.round((remainingAfterMin * saWeight) / totalWeight);
+        const fillBlankExtra = remainingAfterMin - mcExtra - matchingExtra - saExtra; // Remainder goes to fillBlank
+
+        mcCount = minPerType + mcExtra;
+        matchingCount = minPerType + matchingExtra;
+        fillBlankCount = minPerType + fillBlankExtra;
+        sentenceArrangementCount = minPerType + saExtra;
+    }
 
     // Generate matching questions with weighted HSK selection
     for (let i = 0; i < matchingCount; i++) {
@@ -354,6 +596,27 @@ export function generateQuiz(
             if (fallback) {
                 questions.push(fallback);
                 usedIds.add(fallback.correctAnswer.id);
+            }
+        }
+    }
+
+    // Generate sentence arrangement questions with weighted HSK selection
+    for (let i = 0; i < sentenceArrangementCount; i++) {
+        const hskLevel = hasHskData ? selectHskLevelByWeight() : 0;
+        const vocabPool = hasHskData
+            ? getVocabPoolByLevel(hsk1Vocab, hsk2Vocab, hsk3Vocab, hskLevel)
+            : vocabulary;
+
+        const sentenceArrangement = generateSentenceArrangement(vocabPool, usedIds);
+        if (sentenceArrangement) {
+            questions.push(sentenceArrangement);
+            usedIds.add(sentenceArrangement.vocabularyEntry.id);
+        } else {
+            // Fallback to all vocabulary if specific pool is exhausted
+            const fallback = generateSentenceArrangement(vocabulary, usedIds);
+            if (fallback) {
+                questions.push(fallback);
+                usedIds.add(fallback.vocabularyEntry.id);
             }
         }
     }
@@ -405,6 +668,8 @@ export function getQuestionVocabularyIds(question: Question): string[] {
         return [question.correctAnswer.id];
     } else if (question.type === 'fill-blank') {
         return [question.correctAnswer.id];
+    } else if (question.type === 'sentence-arrangement') {
+        return [question.vocabularyEntry.id];
     } else {
         return question.items.map(item => item.id);
     }

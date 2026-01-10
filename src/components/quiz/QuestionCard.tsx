@@ -1,7 +1,8 @@
-import type { Question, Answer, MCAnswer, MatchingAnswer, FillBlankAnswer } from '@/types';
+import type { Question, Answer, MCAnswer, MatchingAnswer, FillBlankAnswer, SentenceArrangementAnswer } from '@/types';
 import { MultipleChoice } from './MultipleChoice';
 import { MatchingQuestionComponent } from './MatchingQuestion';
 import { FillBlankQuestionComponent } from './FillBlankQuestion';
+import { SentenceArrangementQuestion } from './SentenceArrangementQuestion';
 import { Card } from '@/components/common/Card';
 
 interface QuestionCardProps {
@@ -61,6 +62,10 @@ export function QuestionCard({
         onSubmit(answer);
     };
 
+    const handleSentenceArrangementSubmit = (answer: SentenceArrangementAnswer) => {
+        onSubmit(answer);
+    };
+
     return (
         <Card className="animate-slide-up">
             {/* Question Header */}
@@ -72,13 +77,17 @@ export function QuestionCard({
                     ? 'bg-primary-100 text-primary-700'
                     : question.type === 'fill-blank'
                         ? 'bg-warning-100 text-warning-700'
-                        : 'bg-accent-100 text-accent-700'
+                        : question.type === 'sentence-arrangement'
+                            ? 'bg-purple-100 text-purple-700'
+                            : 'bg-accent-100 text-accent-700'
                     }`}>
                     {question.type === 'multiple-choice'
                         ? 'Trắc nghiệm'
                         : question.type === 'fill-blank'
                             ? 'Điền ô trống'
-                            : 'Nối từ'}
+                            : question.type === 'sentence-arrangement'
+                                ? 'Sắp xếp câu'
+                                : 'Nối từ'}
                 </span>
             </div>
 
@@ -98,6 +107,14 @@ export function QuestionCard({
                     isSubmitted={isSubmitted}
                     previousAnswer={(previousAnswer as FillBlankAnswer)?.selectedOption}
                     readOnly={readOnly}
+                />
+            ) : question.type === 'sentence-arrangement' ? (
+                <SentenceArrangementQuestion
+                    question={question}
+                    onAnswer={handleSentenceArrangementSubmit}
+                    questionStartTime={Date.now() - timeSpent}
+                    isSubmitted={isSubmitted}
+                    existingAnswer={previousAnswer as SentenceArrangementAnswer | undefined}
                 />
             ) : (
                 <MatchingQuestionComponent

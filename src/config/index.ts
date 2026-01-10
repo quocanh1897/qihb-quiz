@@ -43,13 +43,28 @@ export interface HSKWeightsConfig {
     hsk3: number;
 }
 
+export interface QuestionTypeWeightsConfig {
+    multipleChoice: number;
+    matching: number;
+    fillBlank: number;
+    sentenceArrangement: number;
+}
+
+export interface SentenceArrangementConfig {
+    minWords: number;
+    maxWords: number;
+    questionText: string;
+}
+
 export interface QuizConfig {
     speech: SpeechConfig;
     hskWeights: HSKWeightsConfig;
+    questionTypeWeights: QuestionTypeWeightsConfig;
     quizLengths: Record<QuizLength, QuizLengthConfig>;
     multipleChoice: MultipleChoiceConfig;
     matching: MatchingConfig;
     fillBlank: FillBlankConfig;
+    sentenceArrangement: SentenceArrangementConfig;
 }
 
 // Export the typed config
@@ -58,10 +73,12 @@ export const config: QuizConfig = quizConfig as QuizConfig;
 // Convenience exports
 export const SPEECH_CONFIG = config.speech;
 export const HSK_WEIGHTS = config.hskWeights;
+export const QUESTION_TYPE_WEIGHTS = config.questionTypeWeights;
 export const QUIZ_LENGTHS = config.quizLengths;
 export const MC_CONFIG = config.multipleChoice;
 export const MATCHING_CONFIG = config.matching;
 export const FILL_BLANK_CONFIG = config.fillBlank;
+export const SENTENCE_ARRANGEMENT_CONFIG = config.sentenceArrangement;
 
 // Helper function to get random matching item count
 export function getRandomMatchingItemCount(): number {

@@ -6,9 +6,15 @@
         "volume": 1
     },
     "hskWeights": {
-        "hsk1": 2,
-        "hsk2": 3,
-        "hsk3": 5
+        "hsk1": 5,
+        "hsk2": 5,
+        "hsk3": 90
+    },
+    "questionTypeWeights": {
+        "multipleChoice": 2,
+        "matching": 3,
+        "fillBlank": 4,
+        "sentenceArrangement": 1
     },
     "quizLengths": {
         "short": {
@@ -78,5 +84,10 @@
         "distractorCount": 5,
         "wordLengthTolerance": 1,
         "questionText": "Điền từ thích hợp vào ô trống:"
+    },
+    "sentenceArrangement": {
+        "minWords": 3,
+        "maxWords": 10,
+        "questionText": "Sắp xếp các từ thành câu hoàn chỉnh:"
     }
 }

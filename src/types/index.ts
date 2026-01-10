@@ -18,7 +18,7 @@ export type QuizLength = 'short' | 'medium' | 'long' | 'maximum';
 export { QUIZ_LENGTHS as QUIZ_LENGTH_CONFIG } from '@/config';
 
 // Question Types
-export type QuestionType = 'multiple-choice' | 'matching' | 'fill-blank';
+export type QuestionType = 'multiple-choice' | 'matching' | 'fill-blank' | 'sentence-arrangement';
 
 // Multiple Choice Question Variants
 export type MCVariant =
@@ -84,7 +84,24 @@ export interface FillBlankQuestion {
     options: FillBlankOption[];
 }
 
-export type Question = MultipleChoiceQuestion | MatchingQuestion | FillBlankQuestion;
+export interface SentenceWord {
+    id: string;
+    text: string;            // The word/character with attached punctuation
+    position: number;        // Original position in sentence (0-indexed)
+}
+
+export interface SentenceArrangementQuestion {
+    id: string;
+    type: 'sentence-arrangement';
+    correctSentence: string;     // The full correct sentence
+    sentencePinyin: string;      // Pinyin of the sentence
+    sentenceMeaning: string;     // Vietnamese meaning of the sentence
+    words: SentenceWord[];       // Correct order of words
+    shuffledWords: SentenceWord[]; // Shuffled words for user to arrange
+    vocabularyEntry: VocabularyEntry; // Source vocabulary for tracking
+}
+
+export type Question = MultipleChoiceQuestion | MatchingQuestion | FillBlankQuestion | SentenceArrangementQuestion;
 
 // Answer Types
 export interface MCAnswer {
@@ -116,7 +133,17 @@ export interface FillBlankAnswer {
     timeSpent: number;
 }
 
-export type Answer = MCAnswer | MatchingAnswer | FillBlankAnswer;
+export interface SentenceArrangementAnswer {
+    questionId: string;
+    type: 'sentence-arrangement';
+    arrangedWords: string[];  // IDs of words in user's arranged order
+    isCorrect: boolean;       // True if all words in correct order
+    correctCount: number;     // Number of words in correct position
+    totalWords: number;       // Total number of words
+    timeSpent: number;
+}
+
+export type Answer = MCAnswer | MatchingAnswer | FillBlankAnswer | SentenceArrangementAnswer;
 
 // Frequency Tracking
 export interface FrequencyRecord {

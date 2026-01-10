@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Play, Database, Sparkles, Loader2 } from 'lucide-react';
+import { BookOpen, Database, Sparkles, Loader2, RefreshCw, BarChart3, CheckCircle, GitCompare, PenLine, Shuffle, ListOrdered } from 'lucide-react';
 import { Layout } from '@/components/common/Layout';
 import { Button } from '@/components/common/Button';
 import { Card } from '@/components/common/Card';
 import { useVocabularyStore } from '@/stores/vocabularyStore';
 import { getHSKCounts } from '@/lib/csvParser';
+import type { QuestionType } from '@/types';
 
 interface HSKCounts {
     hsk1: number;
@@ -31,11 +32,15 @@ export function HomePage() {
         }
     }, [isInitialized]);
 
-    const handleStartQuiz = () => {
+    const handleStartQuiz = (questionType?: QuestionType) => {
         if (vocabulary.length === 0) {
             return;
         }
-        navigate('/setup');
+        if (questionType) {
+            navigate(`/setup?type=${questionType}`);
+        } else {
+            navigate('/setup');
+        }
     };
 
     const handleReloadData = () => {
@@ -114,18 +119,66 @@ export function HomePage() {
                             )}
                         </Card>
 
-                        {/* Start Quiz Button */}
+                        {/* Random Quiz Button */}
                         <Button
                             variant="primary"
                             size="lg"
                             fullWidth
-                            onClick={handleStartQuiz}
+                            onClick={() => handleStartQuiz()}
                             disabled={vocabulary.length === 0}
-                            icon={<Play size={20} />}
+                            icon={<Shuffle size={20} />}
                             className="shadow-lg hover:shadow-xl"
                         >
-                            Tạo bài thi mới
+                            Bài thi ngẫu nhiên
                         </Button>
+
+                        {/* Question Type Specific Buttons */}
+                        <div className="grid grid-cols-2 gap-2">
+                            <Button
+                                variant="outline"
+                                size="md"
+                                fullWidth
+                                onClick={() => handleStartQuiz('multiple-choice')}
+                                disabled={vocabulary.length === 0}
+                                icon={<CheckCircle size={16} />}
+                                className="text-xs"
+                            >
+                                Trắc nghiệm
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="md"
+                                fullWidth
+                                onClick={() => handleStartQuiz('matching')}
+                                disabled={vocabulary.length === 0}
+                                icon={<GitCompare size={16} />}
+                                className="text-xs"
+                            >
+                                Nối từ
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="md"
+                                fullWidth
+                                onClick={() => handleStartQuiz('fill-blank')}
+                                disabled={vocabulary.length === 0}
+                                icon={<PenLine size={16} />}
+                                className="text-xs"
+                            >
+                                Điền từ
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="md"
+                                fullWidth
+                                onClick={() => handleStartQuiz('sentence-arrangement')}
+                                disabled={vocabulary.length === 0}
+                                icon={<ListOrdered size={16} />}
+                                className="text-xs"
+                            >
+                                Sắp xếp câu
+                            </Button>
+                        </div>
 
                         {/* Secondary Actions */}
                         <div className="grid grid-cols-2 gap-3">
@@ -135,6 +188,7 @@ export function HomePage() {
                                 fullWidth
                                 onClick={handleReloadData}
                                 disabled={isLoading}
+                                icon={<RefreshCw size={18} />}
                             >
                                 Tải lại dữ liệu
                             </Button>
@@ -143,6 +197,7 @@ export function HomePage() {
                                 size="md"
                                 fullWidth
                                 onClick={() => navigate('/profile')}
+                                icon={<BarChart3 size={18} />}
                             >
                                 Xem thống kê
                             </Button>
