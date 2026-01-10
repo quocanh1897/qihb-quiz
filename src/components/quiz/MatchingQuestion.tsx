@@ -7,6 +7,7 @@ import {
     useDraggable,
     useDroppable,
     PointerSensor,
+    TouchSensor,
     useSensor,
     useSensors,
 } from '@dnd-kit/core';
@@ -77,11 +78,12 @@ function DraggableItem({ id, value, type, isPlaced }: DraggableItemProps) {
             ref={setNodeRef}
             {...attributes}
             {...listeners}
+            style={{ touchAction: 'none' }}
             className={`
                 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border-2 
                 ${getStyle()}
                 ${isDragging ? 'opacity-50 scale-95' : ''}
-                cursor-grab active:cursor-grabbing transition-all duration-150
+                cursor-grab active:cursor-grabbing transition-all duration-150 select-none
             `}
         >
             <GripVertical size={12} className="text-gray-400" />
@@ -194,6 +196,12 @@ export function MatchingQuestionComponent({
         useSensor(PointerSensor, {
             activationConstraint: {
                 distance: 5,
+            },
+        }),
+        useSensor(TouchSensor, {
+            activationConstraint: {
+                delay: 100,
+                tolerance: 5,
             },
         })
     );
@@ -502,12 +510,15 @@ export function MatchingQuestionComponent({
 
                 <DragOverlay>
                     {activeId && activeData ? (
-                        <div className={`
-                            inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border-2 shadow-lg
-                            ${activeData.type === 'word' ? 'bg-blue-50 border-blue-400' : ''}
-                            ${activeData.type === 'pinyin' ? 'bg-green-50 border-green-400' : ''}
-                            ${activeData.type === 'meaning' ? 'bg-amber-50 border-amber-400' : ''}
-                        `}>
+                        <div
+                            style={{ touchAction: 'none' }}
+                            className={`
+                                inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border-2 shadow-lg select-none
+                                ${activeData.type === 'word' ? 'bg-blue-50 border-blue-400' : ''}
+                                ${activeData.type === 'pinyin' ? 'bg-green-50 border-green-400' : ''}
+                                ${activeData.type === 'meaning' ? 'bg-amber-50 border-amber-400' : ''}
+                            `}
+                        >
                             <GripVertical size={12} className="text-gray-500" />
                             <span className={`
                                 ${activeData.type === 'word' ? 'font-chinese text-base' : ''}
