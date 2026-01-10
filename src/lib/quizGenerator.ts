@@ -261,10 +261,10 @@ export function generateFillBlank(
 ): FillBlankQuestion | null {
     const { optionLabels, distractorCount, wordLengthTolerance } = FILL_BLANK_CONFIG;
 
-    // Filter entries that have examples containing the word
+    // Filter entries that have examples containing the word AND have examplePinyin
     const available = vocabulary.filter(v => {
         if (usedIds.has(v.id)) return false;
-        if (!v.example || !v.exampleMeaning) return false;
+        if (!v.example || !v.exampleMeaning || !v.examplePinyin) return false;
         // The example must contain the word
         return v.example.includes(v.word);
     });
