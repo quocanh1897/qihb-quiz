@@ -50,14 +50,13 @@ export async function parseCSVFile(file: File): Promise<VocabularyEntry[]> {
  * Parse CSV from text content (for pre-loaded files)
  */
 export function parseCSVText(text: string): VocabularyEntry[] {
-    const results = Papa.parse(text, {
+    const results = Papa.parse<RawCSVRow>(text, {
         header: true,
         delimiter: ';',
         skipEmptyLines: false,
-        encoding: 'UTF-8',
     });
 
-    return processRawData(results.data as RawCSVRow[]);
+    return processRawData(results.data);
 }
 
 /**

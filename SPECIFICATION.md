@@ -62,12 +62,19 @@ Users can create new quizzes with 4 length options:
   6. Pinyin → Meaning (Given pinyin, select correct meaning)
 - **Option Selection Logic**: Choose 5 random words with similar character length (±1 character) + 1 correct answer
 
-#### Type B: Nối Từ (Matching)
+#### Type B: Điền Ô Trống (Fill in the Blank)
 
-- **Format**: Match 10 items across 3 columns
+- **Format**: Example sentence with blank, 6 word options
+- **Display**: Shows Chinese sentence with the target word replaced by "\_\_\_"
+- **Options**: 5 similar-length words as distractors + 1 correct answer
+- **After Answer**: Shows pinyin of correct word and Vietnamese translation of sentence
+
+#### Type C: Nối Từ (Matching)
+
+- **Format**: Match 3-6 items across 3 columns
 - **Columns**: Word | Pinyin | Meaning
 - **Interaction**: Drag and drop to connect correct pairs
-- **Scoring**: Each correct connection = 1 point (max 10 points per question)
+- **Scoring**: Each correct connection = 1 point
 
 ### 5. Frequency Tracking
 
@@ -86,7 +93,26 @@ interface FrequencyRecord {
 }
 ```
 
-### 6. Quiz Navigation & Examination
+### 6. Global Learning Progress
+
+Track learning progress across all quizzes:
+
+```typescript
+interface GlobalWordStats {
+  wordId: string;
+  word: string;
+  pinyin: string;
+  meaning: string[];
+  totalAppearances: number;
+  totalCorrect: number;
+  totalIncorrect: number;
+  accuracy: number;
+  progressScore: number; // Weighted score: +2 for correct, -3 for incorrect
+  lastSeen: Date;
+}
+```
+
+### 7. Quiz Navigation & Examination
 
 #### Navigation Elements
 
@@ -125,7 +151,7 @@ Each row shows example after submission:
 └── 📝 Ví dụ: 我每天学习汉语 - Nghĩa là: Tôi học tiếng Trung mỗi ngày
 ```
 
-### 7. Results Page (Kết Quả)
+### 8. Results Page (Kết Quả)
 
 #### Summary Section
 
@@ -133,6 +159,7 @@ Each row shows example after submission:
 - **Thời gian hoàn thành**: Total time to complete quiz
 - **Average time per question type**:
   - Trắc nghiệm average
+  - Điền ô trống average
   - Nối từ average
 
 #### Analytics Table (Phân Tích Kết Quả)
@@ -141,6 +168,43 @@ Sorted by: Most appearances → Most incorrect answers
 
 | Word | Pinyin | Meaning | Appearances | Correct | Incorrect | Accuracy |
 | ---- | ------ | ------- | ----------- | ------- | --------- | -------- |
+
+### 9. Profile Page (Thống Kê Học Tập)
+
+#### Features
+
+- **Global Learning Statistics**: Overview of all-time quiz performance
+- **Top 5 Words to Review**: Words with lowest progress scores
+- **Full Learning Progress Table**: All encountered words with stats
+- **Quiz History**: List of past quizzes with expandable details
+- **Interactive Word Cards**: Click any word to view details
+
+#### Word Detail Popup
+
+When clicking on any word in the profile page, a popup displays:
+
+```
+┌─────────────────────────────────────┐
+│  学习                    🔊 [X]     │
+├─────────────────────────────────────┤
+│  Phiên âm: xuéxí                    │
+│  Từ loại: Động từ                   │
+│  Nghĩa: Học, Học tập                │
+│                                     │
+│  Ví dụ: 我每天学习汉语              │
+│  (wǒ měitiān xuéxí hànyǔ)          │
+│  Nghĩa ví dụ: Tôi học tiếng Trung   │
+│               mỗi ngày              │
+└─────────────────────────────────────┘
+```
+
+#### Clickable Words
+
+All word occurrences in the profile page are clickable buttons:
+
+- Visually distinct with colored background and border
+- Hover effects to indicate interactivity
+- Click to open word detail popup
 
 ---
 
@@ -158,7 +222,9 @@ Sorted by: Most appearances → Most incorrect answers
 | Drag & Drop        | @dnd-kit                 |
 | Routing            | React Router v6          |
 | Build Tool         | Vite                     |
+| Testing            | Playwright               |
 | Hashing            | crypto-js (MD5)          |
+| Production Server  | nginx (Docker)           |
 
 ### Project Structure
 
@@ -166,35 +232,43 @@ Sorted by: Most appearances → Most incorrect answers
 qihb-quiz/
 ├── files/
 │   └── hsk3.csv
+├── public/
+│   └── files/
+│       └── hsk3.csv
 ├── src/
 │   ├── components/
 │   │   ├── common/
 │   │   │   ├── Button.tsx
 │   │   │   ├── Card.tsx
+│   │   │   ├── Layout.tsx
 │   │   │   ├── Navigation.tsx
-│   │   │   └── ProgressBar.tsx
+│   │   │   ├── ProgressBar.tsx
+│   │   │   └── SpeakerButton.tsx
 │   │   ├── quiz/
-│   │   │   ├── MultipleChoice.tsx
+│   │   │   ├── FillBlankQuestion.tsx
 │   │   │   ├── MatchingQuestion.tsx
+│   │   │   ├── MultipleChoice.tsx
 │   │   │   ├── QuestionCard.tsx
 │   │   │   └── QuizTimer.tsx
 │   │   └── results/
-│   │       ├── ScoreSummary.tsx
 │   │       ├── AnalyticsTable.tsx
+│   │       ├── ScoreSummary.tsx
 │   │       └── TimeStats.tsx
+│   ├── config/
+│   │   ├── index.ts
+│   │   └── quiz.config.json
 │   ├── hooks/
-│   │   ├── useQuiz.ts
-│   │   ├── useTimer.ts
-│   │   └── useVocabulary.ts
+│   │   └── useTimer.ts
 │   ├── lib/
 │   │   ├── csvParser.ts
 │   │   ├── db.ts
 │   │   ├── hashUtils.ts
 │   │   └── quizGenerator.ts
 │   ├── pages/
-│   │   ├── HomePage.tsx
-│   │   ├── QuizSetupPage.tsx
 │   │   ├── ExamPage.tsx
+│   │   ├── HomePage.tsx
+│   │   ├── ProfilePage.tsx
+│   │   ├── QuizSetupPage.tsx
 │   │   └── ResultsPage.tsx
 │   ├── stores/
 │   │   ├── quizStore.ts
@@ -202,12 +276,25 @@ qihb-quiz/
 │   ├── types/
 │   │   └── index.ts
 │   ├── App.tsx
-│   ├── main.tsx
-│   └── index.css
+│   ├── index.css
+│   └── main.tsx
+├── tests/
+│   ├── all-question-types.spec.ts
+│   ├── exam.spec.ts
+│   ├── fill-blank.spec.ts
+│   ├── history.spec.ts
+│   ├── home.spec.ts
+│   ├── matching.spec.ts
+│   └── quiz-setup.spec.ts
+├── Dockerfile
+├── docker-compose.yml
 ├── index.html
 ├── package.json
+├── playwright.config.ts
+├── postcss.config.js
 ├── tailwind.config.js
 ├── tsconfig.json
+├── tsconfig.node.json
 └── vite.config.ts
 ```
 
@@ -222,24 +309,26 @@ qihb-quiz/
 | Primary    | Deep Coral | #E85A4F |
 | Secondary  | Warm Cream | #EAE7DC |
 | Accent     | Teal       | #5CA4A9 |
-| Success    | Sage Green | #8E8D8A |
-| Error      | Soft Red   | #D8C3A5 |
+| Success    | Sage Green | #567D58 |
+| Warning    | Gold       | #ECB004 |
+| Error      | Red        | #EF4444 |
 | Background | Off-white  | #F5F5F5 |
 | Text       | Charcoal   | #2D3436 |
 
 ### Typography
 
 - **Headings**: "Noto Sans SC" (Chinese support) / "Be Vietnam Pro"
-- **Body**: "Inter"
-- **Pinyin**: "Source Sans Pro"
+- **Body**: "Be Vietnam Pro"
+- **Pinyin**: "Source Sans 3"
 
 ### Pages Overview
 
 #### 1. Home Page (Trang Chủ)
 
 - App logo and title
+- Vocabulary count display
 - "Tạo bài thi mới" button
-- Quick stats (if available)
+- "Xem thống kê" button
 - Data management section
 
 #### 2. Quiz Setup Page
@@ -252,7 +341,7 @@ qihb-quiz/
 
 - Question number indicator
 - Timer display
-- Question content area
+- Question content area (MC, Fill-blank, or Matching)
 - Navigation controls
 - Submit button
 - Result feedback overlay
@@ -263,7 +352,16 @@ qihb-quiz/
 - Time statistics
 - Analytics table with sorting
 - "Làm bài mới" (New quiz) button
-- "Xem chi tiết" (View details) for each word
+
+#### 5. Profile Page (Thống Kê Học Tập)
+
+- Back navigation button
+- Summary statistics card
+- Top 5 words to review section
+- Full learning progress table (expandable)
+- Quiz history list (expandable entries)
+- Delete options for data management
+- Word detail popup on click
 
 ---
 
@@ -283,6 +381,8 @@ Store in IndexedDB (Dexie.js)
 Quiz Generator selects questions
     ↓
 Frequency Tracker monitors interactions
+    ↓
+Global Stats updated after each quiz
     ↓
 Results aggregated and displayed
 ```
@@ -317,12 +417,42 @@ function generateMultipleChoice(vocabulary: VocabularyEntry[]): Question {
 }
 ```
 
+### Fill in the Blank Generation
+
+```typescript
+function generateFillBlank(vocabulary: VocabularyEntry[]): Question {
+  // 1. Select random word WITH example sentence
+  const wordsWithExamples = vocabulary.filter(
+    (v) => v.example && v.example.includes(v.word)
+  );
+  const correct = selectRandom(wordsWithExamples);
+
+  // 2. Create sentence with blank
+  const sentenceWithBlank = correct.example.replace(correct.word, "___");
+
+  // 3. Get similar-length words for options
+  const wordLength = correct.word.length;
+  const similarWords = vocabulary.filter(
+    (v) => Math.abs(v.word.length - wordLength) <= 1 && v.id !== correct.id
+  );
+
+  // 4. Select 5 random distractors
+  const distractors = selectRandom(similarWords, 5);
+
+  // 5. Shuffle options
+  const options = shuffle([correct, ...distractors]);
+
+  return { type: "fill-blank", correct, options, sentence: sentenceWithBlank };
+}
+```
+
 ### Matching Question Generation
 
 ```typescript
 function generateMatching(vocabulary: VocabularyEntry[]): MatchingQuestion {
-  // 1. Select 10 random entries
-  const selected = selectRandom(vocabulary, 10);
+  // 1. Select 3-6 random entries
+  const count = randomBetween(3, 6);
+  const selected = selectRandom(vocabulary, count);
 
   // 2. Extract and shuffle each column
   const words = shuffle(selected.map((s) => s.word));
@@ -366,7 +496,7 @@ interface TimerState {
   totalTime: number; // Total quiz time in seconds
   questionTimes: {
     questionId: string;
-    type: "multiple-choice" | "matching";
+    type: "multiple-choice" | "fill-blank" | "matching";
     duration: number; // Time spent on this question
   }[];
   currentQuestionStart: number; // Timestamp when question started
@@ -378,13 +508,12 @@ interface TimerState {
 ## 💾 IndexedDB Schema (Dexie.js)
 
 ```typescript
-// Database version 1
 const db = new Dexie("QIHBQuizDB");
 
-db.version(1).stores({
+db.version(3).stores({
   vocabulary: "id, word, pinyin, type",
   quizHistory: "++id, date, score, totalQuestions, duration",
-  frequencyRecords: "wordId, appearances, correctAnswers",
+  globalWordStats: "wordId, word, pinyin, progressScore, lastSeen",
 });
 ```
 
@@ -413,45 +542,15 @@ interface QuizState {
 
 ---
 
-## 🚀 Implementation Phases
+## 🛤 Application Routes
 
-### Phase 1: Foundation (Day 1-2)
-
-- [ ] Project setup with Vite + React + TypeScript
-- [ ] TailwindCSS configuration
-- [ ] IndexedDB setup with Dexie.js
-- [ ] CSV parser implementation
-- [ ] Type definitions
-
-### Phase 2: Data Layer (Day 2-3)
-
-- [ ] CSV data processing and transformation
-- [ ] Vocabulary store implementation
-- [ ] Database seeding from hsk3.csv
-- [ ] Hash ID generation
-
-### Phase 3: Quiz Engine (Day 3-5)
-
-- [ ] Quiz generator algorithms
-- [ ] Multiple choice question component
-- [ ] Matching question component (drag & drop)
-- [ ] Timer implementation
-- [ ] Frequency tracking
-
-### Phase 4: UI/UX (Day 5-7)
-
-- [ ] Home page design
-- [ ] Quiz setup page
-- [ ] Exam page with navigation
-- [ ] Results page with analytics
-- [ ] Responsive design
-
-### Phase 5: Polish (Day 7-8)
-
-- [ ] Animations and transitions
-- [ ] Error handling
-- [ ] Performance optimization
-- [ ] Testing and bug fixes
+| Path       | Component     | Description                   |
+| ---------- | ------------- | ----------------------------- |
+| `/`        | HomePage      | Landing page with navigation  |
+| `/setup`   | QuizSetupPage | Quiz configuration            |
+| `/exam`    | ExamPage      | Quiz taking interface         |
+| `/results` | ResultsPage   | Quiz results and analytics    |
+| `/profile` | ProfilePage   | Learning statistics & history |
 
 ---
 
@@ -470,7 +569,7 @@ interface QuizState {
 │    └─────────────────────────┘     │
 │                                     │
 │    ┌─────────────────────────┐     │
-│    │   📊 Lịch sử làm bài   │     │
+│    │   📊 Xem thống kê      │     │
 │    └─────────────────────────┘     │
 │                                     │
 │    ┌─────────────────────────┐     │
@@ -480,151 +579,61 @@ interface QuizState {
 └─────────────────────────────────────┘
 ```
 
-### Quiz Setup
+### Profile Page (Thống Kê Học Tập)
 
 ```
 ┌─────────────────────────────────────┐
-│  ← Trang chủ    Chọn độ dài bài thi │
+│ ← Quay lại    📊 Thống kê học tập  │
 ├─────────────────────────────────────┤
-│                                     │
-│  ┌─────────┐  ┌─────────┐          │
-│  │  Ngắn   │  │  Trung  │          │
-│  │ 10 câu  │  │ 20 câu  │          │
-│  └─────────┘  └─────────┘          │
-│                                     │
-│  ┌─────────┐  ┌─────────┐          │
-│  │   Dài   │  │ Tối đa  │          │
-│  │ 40 câu  │  │ 100 câu │          │
-│  └─────────┘  └─────────┘          │
-│                                     │
-│         [ Bắt đầu làm bài ]        │
-│                                     │
-└─────────────────────────────────────┘
-```
-
-### Exam Page (Multiple Choice)
-
-```
-┌─────────────────────────────────────┐
-│ Trang chủ         Câu 5/20   ⏱ 2:35│
-├─────────────────────────────────────┤
-│                                     │
-│         Chọn phiên âm đúng         │
-│                                     │
-│              学习                   │
-│                                     │
-│    ○ A. xuéxí                      │
-│    ○ B. xuèxī                      │
-│    ○ C. xuēxì                      │
-│    ○ D. xúexí                      │
-│    ○ E. xuéxì                      │
-│    ○ F. xuèxí                      │
-│                                     │
-├─────────────────────────────────────┤
-│   [ Lùi ]              [ Gửi ]     │
-└─────────────────────────────────────┘
-```
-
-### Exam Page (After Submission - with Example)
-
-```
-┌─────────────────────────────────────┐
-│ Trang chủ         Câu 5/20   ⏱ 2:35│
-├─────────────────────────────────────┤
-│                                     │
-│         Chọn phiên âm đúng         │
-│                                     │
-│              学习                   │
-│                                     │
-│    ✅ A. xuéxí  ← Đáp án đúng      │
-│    ○ B. xuèxī                      │
-│    ○ C. xuēxì                      │
-│    ...                              │
 │                                     │
 │  ┌─────────────────────────────┐   │
-│  │ 📝 Ví dụ: 我每天学习汉语    │   │
-│  │    Nghĩa là: Tôi học tiếng  │   │
-│  │    Trung mỗi ngày           │   │
+│  │ Tổng số bài thi: 15         │   │
+│  │ TB tỷ lệ đúng: 78%          │   │
+│  │ TB thời gian: 5:30          │   │
 │  └─────────────────────────────┘   │
 │                                     │
-├─────────────────────────────────────┤
-│   [ Lùi ]              [ Tiến ]    │
+│  ⚠️ Top 5 từ cần ôn tập:           │
+│  ┌─────────────────────────────┐   │
+│  │ [学习] [工作] [明天] ...    │   │
+│  └─────────────────────────────┘   │
+│                                     │
+│  📖 Thống kê tiến độ học tập:      │
+│  ┌────────────────────────────┐   │
+│  │ Từ   │ Đúng │ Sai │ Điểm  │   │
+│  ├────────────────────────────┤   │
+│  │[学习]│  5   │  2  │  +4   │   │
+│  │[工作]│  3   │  3  │  -3   │   │
+│  │ ...  │ ...  │ ... │ ...   │   │
+│  └────────────────────────────┘   │
+│                                     │
+│  📋 Lịch sử làm bài:               │
+│  ┌─────────────────────────────┐   │
+│  │ ▼ 10/01/2026 - 8/10 đúng   │   │
+│  │ ▶ 09/01/2026 - 15/20 đúng  │   │
+│  │ ▶ 08/01/2026 - 35/40 đúng  │   │
+│  └─────────────────────────────┘   │
+│                                     │
+│         [🗑️ Xóa toàn bộ]          │
+│                                     │
 └─────────────────────────────────────┘
 ```
 
-### Exam Page (Matching)
+### Word Detail Popup
 
 ```
 ┌─────────────────────────────────────┐
-│ Trang chủ         Câu 8/20   ⏱ 5:12│
-├─────────────────────────────────────┤
-│         Nối từ với nghĩa đúng      │
+│                              [X]    │
+│     学习                🔊          │
 │                                     │
-│  Từ        Phiên âm      Nghĩa     │
-│  ───────   ──────────   ───────    │
-│  │学习│    │xuéxí│      │Học│      │
-│  │工作│    │gōngzuò│    │Làm việc│ │
-│  │吃饭│    │chīfàn│     │Ăn cơm│   │
-│  │睡觉│    │shuìjiào│   │Ngủ│      │
-│  │...│     │...│        │...│      │
+│  Phiên âm: xuéxí                    │
+│  Từ loại: Động từ                   │
+│  Nghĩa: Học, Học tập                │
+│  ───────────────────────────────    │
+│  Ví dụ: 我每天学习汉语              │
+│         wǒ měitiān xuéxí hànyǔ     │
+│  Nghĩa ví dụ:                       │
+│         Tôi học tiếng Trung mỗi ngày│
 │                                     │
-├─────────────────────────────────────┤
-│   [ Lùi ]              [ Gửi ]     │
-└─────────────────────────────────────┘
-```
-
-### Exam Page (Matching - After Submission)
-
-```
-┌─────────────────────────────────────┐
-│ Trang chủ         Câu 8/20   ⏱ 5:12│
-├─────────────────────────────────────┤
-│         Nối từ với nghĩa đúng      │
-│  Đúng 4/5 cặp                       │
-│                                     │
-│  Từ        Phiên âm      Nghĩa     │
-│  ───────   ──────────   ───────    │
-│  ✅│学习│  │xuéxí│      │Học│      │
-│    📝 Ví dụ: 我每天学习汉语         │
-│       Nghĩa là: Tôi học tiếng Trung │
-│                                     │
-│  ❌│工作│  │chīfàn│     │Làm việc│ │
-│    → Đáp án: gōngzuò - Làm việc    │
-│    📝 Ví dụ: 他在公司工作          │
-│       Nghĩa là: Anh ấy làm việc... │
-│  ...                                │
-│                                     │
-├─────────────────────────────────────┤
-│   [ Lùi ]              [ Tiến ]    │
-└─────────────────────────────────────┘
-```
-
-### Results Page
-
-```
-┌─────────────────────────────────────┐
-│           Kết quả bài thi          │
-├─────────────────────────────────────┤
-│                                     │
-│    ┌───────────────────────────┐   │
-│    │ 🎉 Đúng 15 câu, sai 5 câu │   │
-│    │    Thời gian: 8:45        │   │
-│    └───────────────────────────┘   │
-│                                     │
-│    Thống kê thời gian:             │
-│    • Trắc nghiệm: TB 25s/câu       │
-│    • Nối từ: TB 60s/câu            │
-│                                     │
-│    Phân tích kết quả:              │
-│    ┌────────────────────────────┐  │
-│    │ Từ    │ Số câu xuất hiện │ Đúng │ Sai  │  │
-│    ├────────────────────────────┤  │
-│    │ 学习  │  3  │   2  │   1  │  │
-│    │ 工作  │  2  │   1  │   1  │  │
-│    │ ...   │ ... │ ...  │ ...  │  │
-│    └────────────────────────────┘  │
-│                                     │
-│         [ Làm bài mới ]            │
 └─────────────────────────────────────┘
 ```
 
@@ -635,14 +644,53 @@ interface QuizState {
 1. **Data Import**: CSV file is parsed correctly with all fields mapped
 2. **Quiz Generation**: Questions are generated randomly without duplicates
 3. **Multiple Choice**: Options have similar word length, 6 choices always shown
-4. **Matching**: Drag and drop works smoothly, connections are validated
-5. **Timer**: Time is tracked per question and in total
-6. **Frequency**: All word appearances are logged accurately
-7. **Navigation**: Back button shows read-only previous answers
-8. **Results**: Analytics table is sortable and accurate
-9. **Persistence**: Quiz data survives page refresh (IndexedDB)
-10. **Responsive**: Works on mobile and desktop
-11. **Example Display**: After answer submission, example sentences ("Ví dụ" and "Nghĩa là") are shown below each vocabulary word
+4. **Fill in Blank**: Sentences display correctly with blank, answer reveals translation
+5. **Matching**: Drag and drop works smoothly, connections are validated
+6. **Timer**: Time is tracked per question and in total
+7. **Frequency**: All word appearances are logged accurately
+8. **Global Stats**: Progress scores update correctly (+2 correct, -3 incorrect)
+9. **Navigation**: Back button shows read-only previous answers
+10. **Results**: Analytics table is sortable and accurate
+11. **Profile Page**: Shows learning progress and quiz history
+12. **Word Popup**: Clicking words shows full vocabulary details
+13. **Persistence**: Quiz data survives page refresh (IndexedDB)
+14. **Responsive**: Works on mobile and desktop
+15. **Example Display**: After answer submission, example sentences are shown
+
+---
+
+## 🐳 Docker Deployment
+
+### Dockerfile
+
+Multi-stage build for optimized image:
+
+1. **Build stage**: Node.js environment, npm install, vite build
+2. **Production stage**: nginx alpine, serves static files
+
+### docker-compose.yml
+
+```yaml
+services:
+  qihb-quiz:
+    build: .
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+```
+
+### Commands
+
+```bash
+# Build and run
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop
+docker-compose down
+```
 
 ---
 
@@ -650,7 +698,7 @@ interface QuizState {
 
 1. User accounts and progress sync
 2. Spaced repetition algorithm
-3. Audio pronunciation
+3. Audio pronunciation (native speakers)
 4. Custom vocabulary import
 5. Multi-language support
 6. Leaderboards
@@ -658,3 +706,29 @@ interface QuizState {
 8. Export/share results
 9. Dark mode
 10. PWA support for offline use
+
+---
+
+## 📚 Maintenance Guide
+
+### Adding New Question Types
+
+1. Create component in `src/components/quiz/`
+2. Add type to `types/index.ts`
+3. Update `quizGenerator.ts` to generate the new type
+4. Update `ExamPage.tsx` to render the new component
+5. Add tests in `tests/`
+
+### Modifying Database Schema
+
+1. Update interfaces in `types/index.ts`
+2. Update Dexie schema version in `lib/db.ts`
+3. Add migration if needed
+4. Update related stores and components
+
+### Updating Vocabulary Data
+
+1. Replace `public/files/hsk3.csv` with new data
+2. Ensure CSV format matches expected columns
+3. Clear browser IndexedDB or use "Xóa toàn bộ" on profile page
+4. Refresh application to reload data

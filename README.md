@@ -1,5 +1,7 @@
 # QIHB-Quiz 🎓
 
+Quick Intelligent Human Bilingual
+
 A modern vocabulary learning quiz application built with React, TypeScript, and TailwindCSS. Perfect for learning Chinese vocabulary (HSK3 level) with Vietnamese translations.
 
 ![QIHB-Quiz](https://img.shields.io/badge/React-18-blue) ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue) ![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3-teal) ![Docker](https://img.shields.io/badge/Docker-Ready-2496ED)
@@ -233,13 +235,13 @@ Tiếng Trung;Phiên âm;Từ loại;Tiếng Việt;Ví dụ;Chú thích;Dịch
 
 ## 🛤 Routes
 
-| Path       | Page                      |
-| ---------- | ------------------------- |
-| `/`        | Home page                 |
-| `/setup`   | Quiz setup/configuration  |
-| `/exam`    | Quiz examination          |
-| `/results` | Quiz results              |
-| `/profile` | Learning statistics       |
+| Path       | Page                     |
+| ---------- | ------------------------ |
+| `/`        | Home page                |
+| `/setup`   | Quiz setup/configuration |
+| `/exam`    | Quiz examination         |
+| `/results` | Quiz results             |
+| `/profile` | Learning statistics      |
 
 ## 📄 License
 

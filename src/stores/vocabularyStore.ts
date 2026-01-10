@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { VocabularyEntry } from '@/types';
-import { db, importVocabulary, getVocabulary, getVocabularyCount, clearVocabulary } from '@/lib/db';
+import { importVocabulary, getVocabulary, getVocabularyCount, clearVocabulary } from '@/lib/db';
 import { loadDefaultVocabulary, parseCSVFile, clearVocabularyCache } from '@/lib/csvParser';
 
 interface VocabularyState {
