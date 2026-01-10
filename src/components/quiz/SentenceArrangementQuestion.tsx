@@ -1,8 +1,8 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { DndContext, closestCenter, DragEndEvent, DragStartEvent, DragOverlay, useSensor, useSensors, PointerSensor, TouchSensor } from '@dnd-kit/core';
 import { SortableContext, horizontalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Check, X, RotateCcw } from 'lucide-react';
+import { Check, X, Lightbulb } from 'lucide-react';
 import { Button } from '@/components/common/Button';
 import { Card } from '@/components/common/Card';
 import { SpeakerButton } from '@/components/common/SpeakerButton';
@@ -82,6 +82,27 @@ export function SentenceArrangementQuestion({
         return [...question.shuffledWords];
     });
     const [activeId, setActiveId] = useState<string | null>(null);
+    const [showHint, setShowHint] = useState(false);
+    const [usedHint, setUsedHint] = useState(false);
+
+    // Auto-reset when question changes (navigating between questions)
+    useEffect(() => {
+        if (existingAnswer) {
+            // Restore order from existing answer
+            setArrangedWords(
+                existingAnswer.arrangedWords.map(id =>
+                    question.shuffledWords.find(w => w.id === id)!
+                ).filter(Boolean)
+            );
+            setShowHint(existingAnswer.usedHint);
+            setUsedHint(existingAnswer.usedHint);
+        } else {
+            // Reset to shuffled order for new/unanswered questions
+            setArrangedWords([...question.shuffledWords]);
+            setShowHint(false);
+            setUsedHint(false);
+        }
+    }, [question.id, existingAnswer, question.shuffledWords]);
 
     const sensors = useSensors(
         useSensor(PointerSensor, {
@@ -135,14 +156,16 @@ export function SentenceArrangementQuestion({
             correctCount,
             totalWords: arrangedWords.length,
             timeSpent,
+            usedHint,
         };
 
         onAnswer(answer);
-    }, [arrangedWords, question.id, questionStartTime, onAnswer]);
+    }, [arrangedWords, question.id, questionStartTime, onAnswer, usedHint]);
 
-    const handleReset = useCallback(() => {
-        setArrangedWords([...question.shuffledWords]);
-    }, [question.shuffledWords]);
+    const handleShowHint = useCallback(() => {
+        setShowHint(true);
+        setUsedHint(true);
+    }, []);
 
     const activeWord = activeId ? arrangedWords.find(w => w.id === activeId) : null;
 
@@ -168,12 +191,19 @@ export function SentenceArrangementQuestion({
                 )}
             </div>
 
-            {/* Meaning hint */}
-            <Card className="bg-secondary-50 border border-secondary-200 text-center">
-                <p className="text-gray-600 text-sm">
-                    <span className="font-medium">Nghĩa:</span> {question.sentenceMeaning}
-                </p>
-            </Card>
+            {/* Meaning hint - only shown after clicking "Xem gợi ý" or after submission */}
+            {(showHint || isSubmitted) && (
+                <Card className="bg-amber-50 border border-amber-200 text-center animate-fade-in">
+                    <p className="text-amber-700 text-sm">
+                        <span className="font-medium">💡 Nghĩa:</span> {question.sentenceMeaning}
+                    </p>
+                    {usedHint && !isSubmitted && (
+                        <p className="text-xs text-amber-500 mt-1">
+                            (Điểm sẽ giảm 50% nếu trả lời đúng)
+                        </p>
+                    )}
+                </Card>
+            )}
 
             {/* Arrangement Area */}
             <div className="min-h-[100px] p-4 bg-white rounded-xl border-2 border-dashed border-gray-300">
@@ -220,7 +250,11 @@ export function SentenceArrangementQuestion({
                             <X size={24} className="text-error-500" />
                         )}
                         <span className={`font-bold ${existingAnswer.isCorrect ? 'text-success-700' : 'text-error-700'}`}>
-                            {existingAnswer.isCorrect ? 'Chính xác!' : `Đúng ${existingAnswer.correctCount}/${existingAnswer.totalWords} từ`}
+                            {existingAnswer.isCorrect
+                                ? existingAnswer.usedHint
+                                    ? 'Chính xác! (dùng gợi ý: -50%)'
+                                    : 'Chính xác!'
+                                : `Đúng ${existingAnswer.correctCount}/${existingAnswer.totalWords} từ`}
                         </span>
                     </div>
 
@@ -236,15 +270,17 @@ export function SentenceArrangementQuestion({
             {/* Action Buttons */}
             {!isSubmitted && (
                 <div className="flex gap-3">
-                    <Button
-                        variant="secondary"
-                        size="md"
-                        onClick={handleReset}
-                        icon={<RotateCcw size={18} />}
-                        className="flex-shrink-0"
-                    >
-                        Đặt lại
-                    </Button>
+                    {!showHint && (
+                        <Button
+                            variant="secondary"
+                            size="md"
+                            onClick={handleShowHint}
+                            icon={<Lightbulb size={18} />}
+                            className="flex-shrink-0"
+                        >
+                            Xem gợi ý
+                        </Button>
+                    )}
                     <Button
                         variant="primary"
                         size="lg"

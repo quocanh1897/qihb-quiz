@@ -155,6 +155,7 @@ export interface SentenceArrangementAnswer {
     correctCount: number;     // Number of words in correct position
     totalWords: number;       // Total number of words
     timeSpent: number;
+    usedHint: boolean;        // Whether the user used the hint (halves score if correct)
 }
 
 export interface SentenceCompletionAnswer {

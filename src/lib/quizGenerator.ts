@@ -16,7 +16,7 @@ import type {
     MCVariant,
 } from '@/types';
 import { generateQuestionId, generateQuizId } from './hashUtils';
-import { MC_CONFIG, MATCHING_CONFIG, FILL_BLANK_CONFIG, SENTENCE_ARRANGEMENT_CONFIG, SENTENCE_COMPLETION_CONFIG, QUIZ_LENGTHS, HSK_WEIGHTS, QUESTION_TYPE_WEIGHTS, getQuestionText } from '@/config';
+import { MC_CONFIG, MATCHING_CONFIG, FILL_BLANK_CONFIG, SENTENCE_ARRANGEMENT_CONFIG, QUIZ_LENGTHS, HSK_WEIGHTS, QUESTION_TYPE_WEIGHTS, getQuestionText } from '@/config';
 
 /**
  * Shuffle array using Fisher-Yates algorithm
@@ -505,14 +505,12 @@ function removePunctuation(text: string): string {
 
 /**
  * Generate a sentence completion question (type the answer)
- * The blank can be any word in the sentence, with pinyin shown as hint
+ * Only blanks single-character words (1字) with pinyin shown as hint
  */
 export function generateSentenceCompletion(
     vocabulary: VocabularyEntry[],
     usedIds: Set<string>
 ): SentenceCompletionQuestion | null {
-    const { minWordLength } = SENTENCE_COMPLETION_CONFIG;
-
     // Filter entries that have examples with pinyin
     const available = vocabulary.filter(v => {
         if (usedIds.has(v.id)) return false;
@@ -531,11 +529,12 @@ export function generateSentenceCompletion(
         // Split sentence into words
         const words = splitChineseSentence(entry.example, entry.examplePinyin);
 
-        // Filter words that can be blanked (minimum length, not pure punctuation)
+        // Filter words that can be blanked - ONLY single-character words (exactly 1 Chinese character)
         const blankableIndices: number[] = [];
         for (let i = 0; i < words.length; i++) {
             const cleanWord = removePunctuation(words[i]);
-            if (cleanWord.length >= minWordLength) {
+            // Only allow exactly 1 character words
+            if (cleanWord.length === 1) {
                 blankableIndices.push(i);
             }
         }

@@ -255,7 +255,10 @@ export const useQuizStore = create<QuizState>((set, get) => ({
                 fillBlankCount++;
             } else if (answer.type === 'sentence-arrangement') {
                 // Only count as correct if 100% of words are in correct position
-                if (answer.isCorrect) correctCount++;
+                // If hint was used, score is halved (0.5 instead of 1)
+                if (answer.isCorrect) {
+                    correctCount += answer.usedHint ? 0.5 : 1;
+                }
                 sentenceArrangementTotalTime += answer.timeSpent;
                 sentenceArrangementCount++;
             } else if (answer.type === 'sentence-completion') {

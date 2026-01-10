@@ -198,6 +198,16 @@ export function FillBlankQuestionComponent({
                 </div>
             )}
 
+            {/* Sentence Pinyin (shown after submission) */}
+            {isSubmitted && question.sentencePinyin && (
+                <div className="bg-primary-50 border border-primary-200 rounded-xl p-4 animate-fade-in">
+                    <div className="text-center space-y-2">
+                        <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Phiên âm</span>
+                        <p className="font-pinyin text-lg text-primary-700">{question.sentencePinyin}</p>
+                    </div>
+                </div>
+            )}
+
             {/* Sentence Meaning (shown after submission) */}
             {isSubmitted && question.sentenceMeaning && (
                 <div className="bg-secondary-50 border border-secondary-200 rounded-xl p-4 animate-fade-in">
