@@ -110,11 +110,6 @@ export function FillBlankQuestionComponent({
             {/* Sentence with Blank */}
             <div className="text-center p-6 bg-secondary-50 rounded-xl border border-secondary-200">
                 {renderSentenceWithBlank()}
-
-                {/* Pinyin hint (shown below) */}
-                <div className="mt-3 font-pinyin text-sm text-gray-500">
-                    {question.sentencePinyin}
-                </div>
             </div>
 
             {/* Options Grid */}

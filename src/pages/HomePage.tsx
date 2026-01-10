@@ -1,20 +1,35 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BookOpen, Play, Database, Sparkles, Loader2 } from 'lucide-react';
 import { Layout } from '@/components/common/Layout';
 import { Button } from '@/components/common/Button';
 import { Card } from '@/components/common/Card';
 import { useVocabularyStore } from '@/stores/vocabularyStore';
+import { getHSKCounts } from '@/lib/csvParser';
+
+interface HSKCounts {
+    hsk1: number;
+    hsk2: number;
+    hsk3: number;
+    total: number;
+}
 
 export function HomePage() {
     const navigate = useNavigate();
     const { vocabulary, isLoading, isInitialized, error, initialize, loadDefault } = useVocabularyStore();
+    const [hskCounts, setHskCounts] = useState<HSKCounts | null>(null);
 
     useEffect(() => {
         if (!isInitialized && !isLoading) {
             initialize();
         }
     }, [isInitialized, isLoading, initialize]);
+
+    useEffect(() => {
+        if (isInitialized) {
+            getHSKCounts().then(setHskCounts).catch(console.error);
+        }
+    }, [isInitialized]);
 
     const handleStartQuiz = () => {
         if (vocabulary.length === 0) {
@@ -71,14 +86,32 @@ export function HomePage() {
                     <div className="w-full max-w-md space-y-4 animate-slide-up">
                         {/* Stats Card */}
                         <Card className="text-center">
-                            <div className="flex items-center justify-center gap-2 text-accent-500 mb-2">
+                            <div className="flex items-center justify-center gap-2 text-accent-500 mb-3">
                                 <Database size={20} />
                                 <span className="text-sm font-medium">Dữ liệu từ vựng</span>
                             </div>
-                            <p className="text-3xl font-bold text-charcoal mb-1">
+                            <p className="text-4xl font-bold text-charcoal mb-2">
                                 {vocabulary.length}
                             </p>
-                            <p className="text-gray-500 text-sm">từ vựng HSK3</p>
+                            <p className="text-gray-500 text-sm mb-3">từ vựng tổng cộng</p>
+
+                            {/* HSK Level Breakdown */}
+                            {hskCounts && (
+                                <div className="flex justify-center gap-4 pt-3 border-t border-secondary-200">
+                                    <div className="text-center">
+                                        <p className="text-lg font-bold text-green-600">{hskCounts.hsk1}</p>
+                                        <p className="text-xs text-gray-400">HSK1</p>
+                                    </div>
+                                    <div className="text-center">
+                                        <p className="text-lg font-bold text-blue-600">{hskCounts.hsk2}</p>
+                                        <p className="text-xs text-gray-400">HSK2</p>
+                                    </div>
+                                    <div className="text-center">
+                                        <p className="text-lg font-bold text-purple-600">{hskCounts.hsk3}</p>
+                                        <p className="text-xs text-gray-400">HSK3</p>
+                                    </div>
+                                </div>
+                            )}
                         </Card>
 
                         {/* Start Quiz Button */}
@@ -120,9 +153,9 @@ export function HomePage() {
                 {/* Footer */}
                 <div className="mt-12 text-center text-sm text-gray-400 animate-fade-in">
                     <p>Ứng dụng luyện từ vựng tiếng Trung</p>
-                    <p className="mt-1">HSK Level 3 • {vocabulary.length} từ vựng</p>
+                    <p className="mt-1">HSK 1-3 • {vocabulary.length} từ vựng</p>
                     <p className="mt-1">© quocanh1897@gmail.com</p>
-                    <p className="mt-2 text-xs">v1.0.0</p>
+                    <p className="mt-2 text-xs">v1.1.0</p>
                 </div>
             </div>
         </Layout>

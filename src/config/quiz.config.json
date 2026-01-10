@@ -5,6 +5,11 @@
         "pitch": 1,
         "volume": 1
     },
+    "hskWeights": {
+        "hsk1": 2,
+        "hsk2": 3,
+        "hsk3": 5
+    },
     "quizLengths": {
         "short": {
             "label": "Ngắn",

@@ -12,7 +12,7 @@ import type {
     MCVariant,
 } from '@/types';
 import { generateQuestionId, generateQuizId } from './hashUtils';
-import { MC_CONFIG, MATCHING_CONFIG, FILL_BLANK_CONFIG, QUIZ_LENGTHS, getQuestionText } from '@/config';
+import { MC_CONFIG, MATCHING_CONFIG, FILL_BLANK_CONFIG, QUIZ_LENGTHS, HSK_WEIGHTS, getQuestionText } from '@/config';
 
 /**
  * Shuffle array using Fisher-Yates algorithm
@@ -241,7 +241,43 @@ export function generateFillBlank(
 }
 
 /**
+ * Select HSK level based on configured weights
+ * Returns 1, 2, or 3 based on weighted random selection
+ */
+function selectHskLevelByWeight(): number {
+    const totalWeight = HSK_WEIGHTS.hsk1 + HSK_WEIGHTS.hsk2 + HSK_WEIGHTS.hsk3;
+    const random = Math.random() * totalWeight;
+
+    if (random < HSK_WEIGHTS.hsk1) {
+        return 1;
+    } else if (random < HSK_WEIGHTS.hsk1 + HSK_WEIGHTS.hsk2) {
+        return 2;
+    } else {
+        return 3;
+    }
+}
+
+/**
+ * Get vocabulary pool for a specific HSK level
+ */
+function getVocabPoolByLevel(
+    hsk1Vocab: VocabularyEntry[],
+    hsk2Vocab: VocabularyEntry[],
+    hsk3Vocab: VocabularyEntry[],
+    level: number
+): VocabularyEntry[] {
+    switch (level) {
+        case 1: return hsk1Vocab;
+        case 2: return hsk2Vocab;
+        case 3: return hsk3Vocab;
+        default: return [...hsk1Vocab, ...hsk2Vocab, ...hsk3Vocab];
+    }
+}
+
+/**
  * Generate a complete quiz with all question types
+ * Strategy: Questions are distributed by HSK level based on configurable weights
+ * Default weights: HSK1=2, HSK2=3, HSK3=5 (20%, 30%, 50%)
  */
 export function generateQuiz(
     vocabulary: VocabularyEntry[],
@@ -250,6 +286,14 @@ export function generateQuiz(
     const questionCount = Math.min(QUIZ_LENGTHS[length].count, vocabulary.length);
     const questions: Question[] = [];
     const usedIds = new Set<string>();
+
+    // Separate vocabulary by HSK level
+    const hsk1Vocab = vocabulary.filter(v => v.hskLevel === 1);
+    const hsk2Vocab = vocabulary.filter(v => v.hskLevel === 2);
+    const hsk3Vocab = vocabulary.filter(v => v.hskLevel === 3);
+
+    // If no HSK info available, fall back to using all vocabulary
+    const hasHskData = hsk1Vocab.length > 0 || hsk2Vocab.length > 0 || hsk3Vocab.length > 0;
 
     // There are 3 question types now
     // Ensure at least 1 of each type, then distribute the rest randomly
@@ -267,35 +311,77 @@ export function generateQuiz(
     const fillBlankCount = minPerType + fillBlankExtra;
     const mcCount = minPerType + mcExtra;
 
-    // Generate matching questions first
+    // Generate matching questions with weighted HSK selection
     for (let i = 0; i < matchingCount; i++) {
-        const matching = generateMatching(vocabulary, usedIds);
+        const hskLevel = hasHskData ? selectHskLevelByWeight() : 0;
+        let vocabPool = hasHskData
+            ? getVocabPoolByLevel(hsk1Vocab, hsk2Vocab, hsk3Vocab, hskLevel)
+            : vocabulary;
+
+        // Fallback to all vocabulary if specific pool is too small
+        if (vocabPool.length < MATCHING_CONFIG.minItems) {
+            vocabPool = vocabulary;
+        }
+
+        const matching = generateMatching(vocabPool, usedIds);
         if (matching) {
             questions.push(matching);
             matching.items.forEach(item => usedIds.add(item.id));
+        } else {
+            // Fallback to all vocabulary if specific pool is exhausted
+            const fallback = generateMatching(vocabulary, usedIds);
+            if (fallback) {
+                questions.push(fallback);
+                fallback.items.forEach(item => usedIds.add(item.id));
+            }
         }
     }
 
-    // Generate fill-blank questions
+    // Generate fill-blank questions with weighted HSK selection
     for (let i = 0; i < fillBlankCount; i++) {
-        const fillBlank = generateFillBlank(vocabulary, usedIds);
+        const hskLevel = hasHskData ? selectHskLevelByWeight() : 0;
+        const vocabPool = hasHskData
+            ? getVocabPoolByLevel(hsk1Vocab, hsk2Vocab, hsk3Vocab, hskLevel)
+            : vocabulary;
+
+        const fillBlank = generateFillBlank(vocabPool, usedIds);
         if (fillBlank) {
             questions.push(fillBlank);
             usedIds.add(fillBlank.correctAnswer.id);
+        } else {
+            // Fallback to all vocabulary if specific pool is exhausted
+            const fallback = generateFillBlank(vocabulary, usedIds);
+            if (fallback) {
+                questions.push(fallback);
+                usedIds.add(fallback.correctAnswer.id);
+            }
         }
     }
 
-    // Generate multiple choice questions
+    // Generate multiple choice questions with weighted HSK selection
     let mcGenerated = 0;
     let attempts = 0;
     const maxAttempts = mcCount * 3;
 
     while (mcGenerated < mcCount && attempts < maxAttempts) {
-        const mc = generateMultipleChoice(vocabulary, new Set()); // Allow reuse for MC
+        const hskLevel = hasHskData ? selectHskLevelByWeight() : 0;
+        const vocabPool = hasHskData
+            ? getVocabPoolByLevel(hsk1Vocab, hsk2Vocab, hsk3Vocab, hskLevel)
+            : vocabulary;
+
+        const mc = generateMultipleChoice(vocabPool, new Set()); // Allow reuse for MC
         if (mc) {
             questions.push(mc);
             usedIds.add(mc.correctAnswer.id);
             mcGenerated++;
+        } else {
+            // Fallback to all vocabulary if specific pool is exhausted
+            const fallback = generateMultipleChoice(vocabulary, new Set());
+            if (fallback) {
+                questions.push(fallback);
+                usedIds.add(fallback.correctAnswer.id);
+                mcGenerated++;
+            }
         }
         attempts++;
     }

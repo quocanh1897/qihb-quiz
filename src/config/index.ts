@@ -37,8 +37,15 @@ export interface SpeechConfig {
     volume: number;
 }
 
+export interface HSKWeightsConfig {
+    hsk1: number;
+    hsk2: number;
+    hsk3: number;
+}
+
 export interface QuizConfig {
     speech: SpeechConfig;
+    hskWeights: HSKWeightsConfig;
     quizLengths: Record<QuizLength, QuizLengthConfig>;
     multipleChoice: MultipleChoiceConfig;
     matching: MatchingConfig;
@@ -50,6 +57,7 @@ export const config: QuizConfig = quizConfig as QuizConfig;
 
 // Convenience exports
 export const SPEECH_CONFIG = config.speech;
+export const HSK_WEIGHTS = config.hskWeights;
 export const QUIZ_LENGTHS = config.quizLengths;
 export const MC_CONFIG = config.multipleChoice;
 export const MATCHING_CONFIG = config.matching;

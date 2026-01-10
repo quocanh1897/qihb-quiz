@@ -8,6 +8,7 @@ export interface VocabularyEntry {
     example: string;          // Ví dụ - Example sentence in Chinese
     examplePinyin: string;    // Chú thích - Example pinyin
     exampleMeaning: string;   // Dịch - Vietnamese translation of example
+    hskLevel?: number;        // HSK Level (1, 2, or 3)
 }
 
 // Quiz Length Options
