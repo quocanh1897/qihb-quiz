@@ -1,0 +1,152 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: "Be Vietnam Pro", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-gradient-to-br from-secondary-100 via-white to-accent-50 min-h-screen text-charcoal;
+  }
+
+  /* Chinese characters should use Noto Sans SC */
+  .font-chinese {
+    font-family: "Noto Sans SC", "Be Vietnam Pro", sans-serif;
+  }
+
+  /* Pinyin should use Source Sans */
+  .font-pinyin {
+    font-family: "Source Sans 3", "Be Vietnam Pro", sans-serif;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-white rounded-2xl shadow-soft p-6 transition-all duration-300;
+  }
+
+  .card-hover {
+    @apply hover:shadow-lg hover:-translate-y-1;
+  }
+
+  .btn {
+    @apply px-6 py-3 rounded-xl font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-primary {
+    @apply btn bg-primary-500 text-white hover:bg-primary-600 focus:ring-primary-400 active:scale-95;
+  }
+
+  .btn-secondary {
+    @apply btn bg-secondary-200 text-charcoal hover:bg-secondary-300 focus:ring-secondary-400 active:scale-95;
+  }
+
+  .btn-accent {
+    @apply btn bg-accent-400 text-white hover:bg-accent-500 focus:ring-accent-300 active:scale-95;
+  }
+
+  .btn-ghost {
+    @apply btn bg-transparent text-charcoal hover:bg-secondary-100 focus:ring-secondary-300;
+  }
+
+  .btn-outline {
+    @apply btn bg-transparent border-2 border-primary-500 text-primary-500 hover:bg-primary-50 focus:ring-primary-400;
+  }
+
+  .input {
+    @apply w-full px-4 py-3 rounded-xl border-2 border-secondary-200 bg-white focus:border-primary-400 focus:ring-2 focus:ring-primary-100 focus:outline-none transition-all duration-200;
+  }
+
+  .quiz-option {
+    @apply w-full text-left p-4 rounded-xl border-2 border-secondary-200 bg-white hover:border-primary-300 hover:bg-primary-50 transition-all duration-200 cursor-pointer;
+  }
+
+  .quiz-option-selected {
+    @apply border-primary-500 bg-primary-50 ring-2 ring-primary-200;
+  }
+
+  .quiz-option-correct {
+    @apply border-success-500 bg-success-50 ring-2 ring-success-200;
+  }
+
+  .quiz-option-incorrect {
+    @apply border-error-500 bg-error-50 ring-2 ring-error-200;
+  }
+
+  .matching-item {
+    @apply px-4 py-2 rounded-lg bg-white border-2 border-secondary-200 cursor-grab active:cursor-grabbing transition-all duration-150 select-none;
+  }
+
+  .matching-item-dragging {
+    @apply shadow-lg scale-105 border-primary-400 z-50;
+  }
+
+  .matching-dropzone {
+    @apply min-h-[48px] rounded-lg border-2 border-dashed border-secondary-300 bg-secondary-50 transition-all duration-200;
+  }
+
+  .matching-dropzone-active {
+    @apply border-primary-400 bg-primary-50;
+  }
+
+  .progress-bar {
+    @apply h-2 rounded-full bg-secondary-200 overflow-hidden;
+  }
+
+  .progress-bar-fill {
+    @apply h-full bg-gradient-to-r from-primary-400 to-primary-500 rounded-full transition-all duration-500 ease-out;
+  }
+}
+
+@layer utilities {
+  .text-shadow {
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .glass {
+    @apply bg-white/70 backdrop-blur-sm;
+  }
+
+  .gradient-text {
+    @apply bg-gradient-to-r from-primary-500 to-accent-400 bg-clip-text text-transparent;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-secondary-100 rounded-full;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-secondary-300 rounded-full hover:bg-secondary-400;
+}
+
+/* Page transitions */
+.page-enter {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.page-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 300ms, transform 300ms;
+}
+
+.page-exit {
+  opacity: 1;
+}
+
+.page-exit-active {
+  opacity: 0;
+  transition: opacity 300ms;
+}

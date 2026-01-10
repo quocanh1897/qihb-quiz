@@ -1,0 +1,77 @@
+{
+    "speech": {
+        "preferFemale": true,
+        "rate": 0.8,
+        "pitch": 1,
+        "volume": 1
+    },
+    "quizLengths": {
+        "short": {
+            "label": "Ngắn",
+            "count": 3,
+            "description": "3 câu"
+        },
+        "medium": {
+            "label": "Trung",
+            "count": 20,
+            "description": "20 câu"
+        },
+        "long": {
+            "label": "Dài",
+            "count": 40,
+            "description": "40 câu"
+        },
+        "maximum": {
+            "label": "Tối đa",
+            "count": 100,
+            "description": "100 câu"
+        }
+    },
+    "multipleChoice": {
+        "optionCount": 6,
+        "optionLabels": [
+            "A",
+            "B",
+            "C",
+            "D",
+            "E",
+            "F"
+        ],
+        "distractorCount": 5,
+        "wordLengthTolerance": 1,
+        "variants": [
+            "word-to-pinyin",
+            "pinyin-to-word",
+            "meaning-to-word",
+            "meaning-to-pinyin",
+            "word-to-meaning",
+            "pinyin-to-meaning"
+        ],
+        "questionTexts": {
+            "word-to-pinyin": "Chọn phiên âm đúng cho từ sau:",
+            "pinyin-to-word": "Chọn từ đúng cho phiên âm sau:",
+            "meaning-to-word": "Chọn từ có nghĩa:",
+            "meaning-to-pinyin": "Chọn phiên âm của từ có nghĩa:",
+            "word-to-meaning": "Chọn nghĩa đúng của từ sau:",
+            "pinyin-to-meaning": "Chọn nghĩa đúng cho phiên âm sau:"
+        }
+    },
+    "matching": {
+        "minItems": 3,
+        "maxItems": 6
+    },
+    "fillBlank": {
+        "optionCount": 6,
+        "optionLabels": [
+            "A",
+            "B",
+            "C",
+            "D",
+            "E",
+            "F"
+        ],
+        "distractorCount": 5,
+        "wordLengthTolerance": 1,
+        "questionText": "Điền từ thích hợp vào ô trống:"
+    }
+}
