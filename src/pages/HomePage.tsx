@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Database, Sparkles, Loader2, RefreshCw, BarChart3, CheckCircle, GitCompare, PenLine, Shuffle, ListOrdered } from 'lucide-react';
+import { BookOpen, Database, Sparkles, Loader2, RefreshCw, BarChart3, CheckCircle, GitCompare, PenLine, Shuffle, ListOrdered, Type } from 'lucide-react';
 import { Layout } from '@/components/common/Layout';
 import { Button } from '@/components/common/Button';
 import { Card } from '@/components/common/Card';
@@ -177,6 +177,17 @@ export function HomePage() {
                                 className="text-xs"
                             >
                                 Sắp xếp câu
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="md"
+                                fullWidth
+                                onClick={() => handleStartQuiz('sentence-completion')}
+                                disabled={vocabulary.length === 0}
+                                icon={<Type size={16} />}
+                                className="text-xs col-span-2"
+                            >
+                                Hoàn thiện câu
                             </Button>
                         </div>
 

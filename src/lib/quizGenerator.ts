@@ -6,6 +6,7 @@ import type {
     MatchingQuestion,
     FillBlankQuestion,
     SentenceArrangementQuestion,
+    SentenceCompletionQuestion,
     MultipleChoiceOption,
     MatchingItem,
     FillBlankOption,
@@ -15,7 +16,7 @@ import type {
     MCVariant,
 } from '@/types';
 import { generateQuestionId, generateQuizId } from './hashUtils';
-import { MC_CONFIG, MATCHING_CONFIG, FILL_BLANK_CONFIG, SENTENCE_ARRANGEMENT_CONFIG, QUIZ_LENGTHS, HSK_WEIGHTS, QUESTION_TYPE_WEIGHTS, getQuestionText } from '@/config';
+import { MC_CONFIG, MATCHING_CONFIG, FILL_BLANK_CONFIG, SENTENCE_ARRANGEMENT_CONFIG, SENTENCE_COMPLETION_CONFIG, QUIZ_LENGTHS, HSK_WEIGHTS, QUESTION_TYPE_WEIGHTS, getQuestionText } from '@/config';
 
 /**
  * Shuffle array using Fisher-Yates algorithm
@@ -462,6 +463,117 @@ export function generateSentenceArrangement(
 }
 
 /**
+ * Split pinyin string into individual syllables, matching the word structure
+ * Returns an array where each element corresponds to a word's pinyin
+ */
+function splitPinyinIntoWords(pinyin: string, wordCount: number): string[] {
+    const syllables = pinyin.trim().split(/\s+/).filter(s => s.length > 0);
+
+    // If we have same number of syllables as words, it's a direct mapping
+    if (syllables.length === wordCount) {
+        return syllables;
+    }
+
+    // Otherwise, try to distribute syllables evenly
+    const result: string[] = [];
+    let currentIndex = 0;
+
+    // Calculate syllables per word (ceiling division for even distribution)
+    const syllablesPerWord = Math.ceil(syllables.length / wordCount);
+
+    for (let i = 0; i < wordCount && currentIndex < syllables.length; i++) {
+        const count = Math.min(syllablesPerWord, syllables.length - currentIndex);
+        const wordPinyin = syllables.slice(currentIndex, currentIndex + count).join(' ');
+        result.push(wordPinyin);
+        currentIndex += count;
+    }
+
+    // If we have remaining words without pinyin, fill with empty strings
+    while (result.length < wordCount) {
+        result.push('');
+    }
+
+    return result;
+}
+
+/**
+ * Remove punctuation from a Chinese word/string
+ */
+function removePunctuation(text: string): string {
+    return text.replace(/[。，！？、；：""''（）《》【】…—·\s]/g, '');
+}
+
+/**
+ * Generate a sentence completion question (type the answer)
+ * The blank can be any word in the sentence, with pinyin shown as hint
+ */
+export function generateSentenceCompletion(
+    vocabulary: VocabularyEntry[],
+    usedIds: Set<string>
+): SentenceCompletionQuestion | null {
+    const { minWordLength } = SENTENCE_COMPLETION_CONFIG;
+
+    // Filter entries that have examples with pinyin
+    const available = vocabulary.filter(v => {
+        if (usedIds.has(v.id)) return false;
+        if (!v.example || !v.examplePinyin || !v.exampleMeaning) return false;
+        return v.example.length >= 4;
+    });
+
+    if (available.length < 1) {
+        return null;
+    }
+
+    // Try to find a suitable sentence
+    const shuffled = shuffle([...available]);
+
+    for (const entry of shuffled) {
+        // Split sentence into words
+        const words = splitChineseSentence(entry.example, entry.examplePinyin);
+
+        // Filter words that can be blanked (minimum length, not pure punctuation)
+        const blankableIndices: number[] = [];
+        for (let i = 0; i < words.length; i++) {
+            const cleanWord = removePunctuation(words[i]);
+            if (cleanWord.length >= minWordLength) {
+                blankableIndices.push(i);
+            }
+        }
+
+        if (blankableIndices.length === 0) continue;
+
+        // Pick a random word to blank
+        const blankIndex = blankableIndices[Math.floor(Math.random() * blankableIndices.length)];
+        const blankWordWithPunctuation = words[blankIndex];
+        const blankWord = removePunctuation(blankWordWithPunctuation);
+
+        // Get pinyin for each word
+        const pinyinParts = splitPinyinIntoWords(entry.examplePinyin, words.length);
+        const blankPinyin = pinyinParts[blankIndex] || '';
+
+        // Build sentence parts before and after the blank
+        const sentenceBeforeBlank = words.slice(0, blankIndex).join('');
+        const sentenceAfterBlank = words.slice(blankIndex + 1).join('');
+
+        return {
+            id: generateQuestionId(),
+            type: 'sentence-completion',
+            sentence: entry.example,
+            sentenceMeaning: entry.exampleMeaning,
+            blankWord,
+            blankWordWithPunctuation,
+            blankPinyin,
+            blankPosition: blankIndex,
+            sentenceBeforeBlank,
+            sentenceAfterBlank,
+            vocabularyEntry: entry,
+        };
+    }
+
+    return null;
+}
+
+/**
  * Select HSK level based on configured weights
  * Returns 1, 2, or 3 based on weighted random selection
  */
@@ -524,6 +636,7 @@ export function generateQuiz(
     let matchingCount: number;
     let fillBlankCount: number;
     let sentenceArrangementCount: number;
+    let sentenceCompletionCount: number;
 
     if (questionType) {
         // Single type quiz - all questions are of the specified type
@@ -531,13 +644,14 @@ export function generateQuiz(
         matchingCount = questionType === 'matching' ? questionCount : 0;
         fillBlankCount = questionType === 'fill-blank' ? questionCount : 0;
         sentenceArrangementCount = questionType === 'sentence-arrangement' ? questionCount : 0;
+        sentenceCompletionCount = questionType === 'sentence-completion' ? questionCount : 0;
     } else {
         // Mixed quiz - distribute by configurable weights
-        const { multipleChoice: mcWeight, matching: matchingWeight, fillBlank: fillBlankWeight, sentenceArrangement: saWeight } = QUESTION_TYPE_WEIGHTS;
-        const totalWeight = mcWeight + matchingWeight + fillBlankWeight + saWeight;
+        const { multipleChoice: mcWeight, matching: matchingWeight, fillBlank: fillBlankWeight, sentenceArrangement: saWeight, sentenceCompletion: scWeight } = QUESTION_TYPE_WEIGHTS;
+        const totalWeight = mcWeight + matchingWeight + fillBlankWeight + saWeight + scWeight;
 
-        // Calculate counts based on weights (ensure at least 1 of each type if questionCount >= 4)
-        const numTypes = 4;
+        // Calculate counts based on weights (ensure at least 1 of each type if questionCount >= 5)
+        const numTypes = 5;
         const minPerType = questionCount >= numTypes ? 1 : 0;
         const remainingAfterMin = Math.max(0, questionCount - (minPerType * numTypes));
 
@@ -545,12 +659,14 @@ export function generateQuiz(
         const mcExtra = Math.round((remainingAfterMin * mcWeight) / totalWeight);
         const matchingExtra = Math.round((remainingAfterMin * matchingWeight) / totalWeight);
         const saExtra = Math.round((remainingAfterMin * saWeight) / totalWeight);
-        const fillBlankExtra = remainingAfterMin - mcExtra - matchingExtra - saExtra; // Remainder goes to fillBlank
+        const scExtra = Math.round((remainingAfterMin * scWeight) / totalWeight);
+        const fillBlankExtra = remainingAfterMin - mcExtra - matchingExtra - saExtra - scExtra; // Remainder goes to fillBlank
 
         mcCount = minPerType + mcExtra;
         matchingCount = minPerType + matchingExtra;
         fillBlankCount = minPerType + fillBlankExtra;
         sentenceArrangementCount = minPerType + saExtra;
+        sentenceCompletionCount = minPerType + scExtra;
     }
 
     // Generate matching questions with weighted HSK selection
@@ -621,6 +737,27 @@ export function generateQuiz(
         }
     }
 
+    // Generate sentence completion questions with weighted HSK selection
+    for (let i = 0; i < sentenceCompletionCount; i++) {
+        const hskLevel = hasHskData ? selectHskLevelByWeight() : 0;
+        const vocabPool = hasHskData
+            ? getVocabPoolByLevel(hsk1Vocab, hsk2Vocab, hsk3Vocab, hskLevel)
+            : vocabulary;
+
+        const sentenceCompletion = generateSentenceCompletion(vocabPool, usedIds);
+        if (sentenceCompletion) {
+            questions.push(sentenceCompletion);
+            usedIds.add(sentenceCompletion.vocabularyEntry.id);
+        } else {
+            // Fallback to all vocabulary if specific pool is exhausted
+            const fallback = generateSentenceCompletion(vocabulary, usedIds);
+            if (fallback) {
+                questions.push(fallback);
+                usedIds.add(fallback.vocabularyEntry.id);
+            }
+        }
+    }
+
     // Generate multiple choice questions with weighted HSK selection
     let mcGenerated = 0;
     let attempts = 0;
@@ -669,6 +806,8 @@ export function getQuestionVocabularyIds(question: Question): string[] {
     } else if (question.type === 'fill-blank') {
         return [question.correctAnswer.id];
     } else if (question.type === 'sentence-arrangement') {
+        return [question.vocabularyEntry.id];
+    } else if (question.type === 'sentence-completion') {
         return [question.vocabularyEntry.id];
     } else {
         return question.items.map(item => item.id);

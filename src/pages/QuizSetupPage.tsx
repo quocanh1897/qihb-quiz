@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ChevronLeft, Zap, Gauge, Timer, Infinity, Play, CheckCircle, GitCompare, PenLine, Shuffle, ListOrdered } from 'lucide-react';
+import { ChevronLeft, Zap, Gauge, Timer, Infinity, Play, CheckCircle, GitCompare, PenLine, Shuffle, ListOrdered, Type } from 'lucide-react';
 import { Layout, PageHeader } from '@/components/common/Layout';
 import { Button } from '@/components/common/Button';
 import { Card } from '@/components/common/Card';
@@ -44,6 +44,11 @@ const QUESTION_TYPE_INFO: Record<QuestionType, { label: string; icon: typeof Che
         label: 'Sắp xếp câu',
         icon: ListOrdered,
         description: 'Sắp xếp các từ thành câu hoàn chỉnh',
+    },
+    'sentence-completion': {
+        label: 'Hoàn thiện câu',
+        icon: Type,
+        description: 'Nhập từ còn thiếu vào chỗ trống trong câu',
     },
 };
 
@@ -171,7 +176,7 @@ export function QuizSetupPage() {
                     <p className="font-medium text-charcoal mb-2">📌 Thông tin bài thi:</p>
                     <ul className="space-y-1 ml-4 list-disc">
                         {!questionType && (
-                            <li>Gồm câu hỏi <strong>trắc nghiệm</strong>, <strong>điền từ</strong>, <strong>nối từ</strong> và <strong>sắp xếp câu</strong></li>
+                            <li>Gồm câu hỏi <strong>trắc nghiệm</strong>, <strong>điền từ</strong>, <strong>nối từ</strong>, <strong>sắp xếp câu</strong> và <strong>hoàn thiện câu</strong></li>
                         )}
                         {(!questionType || questionType === 'multiple-choice') && (
                             <li>Mỗi câu trắc nghiệm có {MC_CONFIG.optionCount} lựa chọn ({MC_CONFIG.optionLabels[0]}-{MC_CONFIG.optionLabels[MC_CONFIG.optionLabels.length - 1]})</li>
@@ -184,6 +189,9 @@ export function QuizSetupPage() {
                         )}
                         {(!questionType || questionType === 'sentence-arrangement') && (
                             <li>Mỗi câu sắp xếp có {SENTENCE_ARRANGEMENT_CONFIG.minWords}-{SENTENCE_ARRANGEMENT_CONFIG.maxWords} từ cần sắp xếp</li>
+                        )}
+                        {(!questionType || questionType === 'sentence-completion') && (
+                            <li>Mỗi câu hoàn thiện cần nhập từ dựa vào gợi ý phiên âm</li>
                         )}
                         <li>Thời gian làm bài không giới hạn</li>
                     </ul>

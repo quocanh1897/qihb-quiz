@@ -1,8 +1,9 @@
-import type { Question, Answer, MCAnswer, MatchingAnswer, FillBlankAnswer, SentenceArrangementAnswer } from '@/types';
+import type { Question, Answer, MCAnswer, MatchingAnswer, FillBlankAnswer, SentenceArrangementAnswer, SentenceCompletionAnswer } from '@/types';
 import { MultipleChoice } from './MultipleChoice';
 import { MatchingQuestionComponent } from './MatchingQuestion';
 import { FillBlankQuestionComponent } from './FillBlankQuestion';
 import { SentenceArrangementQuestion } from './SentenceArrangementQuestion';
+import { SentenceCompletionQuestionComponent } from './SentenceCompletionQuestion';
 import { Card } from '@/components/common/Card';
 
 interface QuestionCardProps {
@@ -66,6 +67,17 @@ export function QuestionCard({
         onSubmit(answer);
     };
 
+    const handleSentenceCompletionSubmit = (userInput: string, isCorrect: boolean) => {
+        const answer: SentenceCompletionAnswer = {
+            questionId: question.id,
+            type: 'sentence-completion',
+            userInput,
+            isCorrect,
+            timeSpent,
+        };
+        onSubmit(answer);
+    };
+
     return (
         <Card className="animate-slide-up">
             {/* Question Header */}
@@ -79,7 +91,9 @@ export function QuestionCard({
                         ? 'bg-warning-100 text-warning-700'
                         : question.type === 'sentence-arrangement'
                             ? 'bg-purple-100 text-purple-700'
-                            : 'bg-accent-100 text-accent-700'
+                            : question.type === 'sentence-completion'
+                                ? 'bg-teal-100 text-teal-700'
+                                : 'bg-accent-100 text-accent-700'
                     }`}>
                     {question.type === 'multiple-choice'
                         ? 'Trắc nghiệm'
@@ -87,7 +101,9 @@ export function QuestionCard({
                             ? 'Điền ô trống'
                             : question.type === 'sentence-arrangement'
                                 ? 'Sắp xếp câu'
-                                : 'Nối từ'}
+                                : question.type === 'sentence-completion'
+                                    ? 'Hoàn thiện câu'
+                                    : 'Nối từ'}
                 </span>
             </div>
 
@@ -115,6 +131,14 @@ export function QuestionCard({
                     questionStartTime={Date.now() - timeSpent}
                     isSubmitted={isSubmitted}
                     existingAnswer={previousAnswer as SentenceArrangementAnswer | undefined}
+                />
+            ) : question.type === 'sentence-completion' ? (
+                <SentenceCompletionQuestionComponent
+                    question={question}
+                    onSubmit={handleSentenceCompletionSubmit}
+                    isSubmitted={isSubmitted}
+                    previousAnswer={(previousAnswer as SentenceCompletionAnswer)?.userInput}
+                    readOnly={readOnly}
                 />
             ) : (
                 <MatchingQuestionComponent

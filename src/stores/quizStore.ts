@@ -7,6 +7,7 @@ import type {
     MatchingAnswer,
     FillBlankAnswer,
     SentenceArrangementAnswer,
+    SentenceCompletionAnswer,
     FrequencyRecord,
     QuizResult,
     QuizLength,
@@ -16,6 +17,7 @@ import type {
     MatchingQuestion,
     FillBlankQuestion,
     SentenceArrangementQuestion,
+    SentenceCompletionQuestion,
 } from '@/types';
 import { generateQuiz, getQuestionVocabularyIds } from '@/lib/quizGenerator';
 import { saveQuizHistory, updateGlobalWordStats, getWordStats, calculateProgressPoints } from '@/lib/db';
@@ -143,6 +145,19 @@ export const useQuizStore = create<QuizState>((set, get) => ({
                     }
                     record.accuracy = (record.correctAnswers / record.appearances) * 100;
                 }
+            } else if (question.type === 'sentence-completion') {
+                const scQuestion = question as SentenceCompletionQuestion;
+                const scAnswer = answer as SentenceCompletionAnswer;
+                const record = updatedFrequency.get(scQuestion.vocabularyEntry.id);
+                if (record) {
+                    record.appearances++;
+                    if (scAnswer.isCorrect) {
+                        record.correctAnswers++;
+                    } else {
+                        record.incorrectAnswers++;
+                    }
+                    record.accuracy = (record.correctAnswers / record.appearances) * 100;
+                }
             } else {
                 const matchingQuestion = question as MatchingQuestion;
                 const matchingAnswer = answer as MatchingAnswer;
@@ -226,6 +241,8 @@ export const useQuizStore = create<QuizState>((set, get) => ({
         let fillBlankCount = 0;
         let sentenceArrangementTotalTime = 0;
         let sentenceArrangementCount = 0;
+        let sentenceCompletionTotalTime = 0;
+        let sentenceCompletionCount = 0;
 
         for (const answer of answers) {
             if (answer.type === 'multiple-choice') {
@@ -241,6 +258,10 @@ export const useQuizStore = create<QuizState>((set, get) => ({
                 if (answer.isCorrect) correctCount++;
                 sentenceArrangementTotalTime += answer.timeSpent;
                 sentenceArrangementCount++;
+            } else if (answer.type === 'sentence-completion') {
+                if (answer.isCorrect) correctCount++;
+                sentenceCompletionTotalTime += answer.timeSpent;
+                sentenceCompletionCount++;
             } else {
                 correctCount += answer.correctCount;
                 matchingTotalTime += answer.timeSpent;
@@ -314,6 +335,8 @@ export const useQuizStore = create<QuizState>((set, get) => ({
             mcAverageTime: mcCount > 0 ? mcTotalTime / mcCount : 0,
             matchingAverageTime: matchingCount > 0 ? matchingTotalTime / matchingCount : 0,
             fillBlankAverageTime: fillBlankCount > 0 ? fillBlankTotalTime / fillBlankCount : 0,
+            sentenceArrangementAverageTime: sentenceArrangementCount > 0 ? sentenceArrangementTotalTime / sentenceArrangementCount : 0,
+            sentenceCompletionAverageTime: sentenceCompletionCount > 0 ? sentenceCompletionTotalTime / sentenceCompletionCount : 0,
             frequencyData,
             answers,
             progressScore: totalProgressScore,

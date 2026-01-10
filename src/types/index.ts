@@ -18,7 +18,7 @@ export type QuizLength = 'short' | 'medium' | 'long' | 'maximum';
 export { QUIZ_LENGTHS as QUIZ_LENGTH_CONFIG } from '@/config';
 
 // Question Types
-export type QuestionType = 'multiple-choice' | 'matching' | 'fill-blank' | 'sentence-arrangement';
+export type QuestionType = 'multiple-choice' | 'matching' | 'fill-blank' | 'sentence-arrangement' | 'sentence-completion';
 
 // Multiple Choice Question Variants
 export type MCVariant =
@@ -101,7 +101,21 @@ export interface SentenceArrangementQuestion {
     vocabularyEntry: VocabularyEntry; // Source vocabulary for tracking
 }
 
-export type Question = MultipleChoiceQuestion | MatchingQuestion | FillBlankQuestion | SentenceArrangementQuestion;
+export interface SentenceCompletionQuestion {
+    id: string;
+    type: 'sentence-completion';
+    sentence: string;            // The full sentence
+    sentenceMeaning: string;     // Vietnamese meaning
+    blankWord: string;           // The word to fill in (without punctuation)
+    blankWordWithPunctuation: string; // The word with any attached punctuation
+    blankPinyin: string;         // Pinyin hint for the blank word
+    blankPosition: number;       // Index of the blank word in the sentence
+    sentenceBeforeBlank: string; // Text before the blank
+    sentenceAfterBlank: string;  // Text after the blank
+    vocabularyEntry: VocabularyEntry; // Source vocabulary for tracking
+}
+
+export type Question = MultipleChoiceQuestion | MatchingQuestion | FillBlankQuestion | SentenceArrangementQuestion | SentenceCompletionQuestion;
 
 // Answer Types
 export interface MCAnswer {
@@ -143,7 +157,15 @@ export interface SentenceArrangementAnswer {
     timeSpent: number;
 }
 
-export type Answer = MCAnswer | MatchingAnswer | FillBlankAnswer | SentenceArrangementAnswer;
+export interface SentenceCompletionAnswer {
+    questionId: string;
+    type: 'sentence-completion';
+    userInput: string;        // What the user typed
+    isCorrect: boolean;
+    timeSpent: number;
+}
+
+export type Answer = MCAnswer | MatchingAnswer | FillBlankAnswer | SentenceArrangementAnswer | SentenceCompletionAnswer;
 
 // Frequency Tracking
 export interface FrequencyRecord {
@@ -191,6 +213,8 @@ export interface QuizResult {
     mcAverageTime: number;   // Average time for MC questions
     matchingAverageTime: number;  // Average time for matching questions
     fillBlankAverageTime: number; // Average time for fill-blank questions
+    sentenceArrangementAverageTime: number; // Average time for sentence arrangement questions
+    sentenceCompletionAverageTime: number;  // Average time for sentence completion questions
     frequencyData: FrequencyRecord[];
     answers: Answer[];
     progressScore: number;   // "Điểm tiến bộ" - Progress score for this quiz [-100, 100]

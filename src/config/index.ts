@@ -48,11 +48,17 @@ export interface QuestionTypeWeightsConfig {
     matching: number;
     fillBlank: number;
     sentenceArrangement: number;
+    sentenceCompletion: number;
 }
 
 export interface SentenceArrangementConfig {
     minWords: number;
     maxWords: number;
+    questionText: string;
+}
+
+export interface SentenceCompletionConfig {
+    minWordLength: number;
     questionText: string;
 }
 
@@ -65,6 +71,7 @@ export interface QuizConfig {
     matching: MatchingConfig;
     fillBlank: FillBlankConfig;
     sentenceArrangement: SentenceArrangementConfig;
+    sentenceCompletion: SentenceCompletionConfig;
 }
 
 // Export the typed config
@@ -79,6 +86,7 @@ export const MC_CONFIG = config.multipleChoice;
 export const MATCHING_CONFIG = config.matching;
 export const FILL_BLANK_CONFIG = config.fillBlank;
 export const SENTENCE_ARRANGEMENT_CONFIG = config.sentenceArrangement;
+export const SENTENCE_COMPLETION_CONFIG = config.sentenceCompletion;
 
 // Helper function to get random matching item count
 export function getRandomMatchingItemCount(): number {

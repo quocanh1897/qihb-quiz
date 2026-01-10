@@ -13,8 +13,9 @@
     "questionTypeWeights": {
         "multipleChoice": 2,
         "matching": 3,
-        "fillBlank": 4,
-        "sentenceArrangement": 1
+        "fillBlank": 3,
+        "sentenceArrangement": 1,
+        "sentenceCompletion": 1
     },
     "quizLengths": {
         "short": {
@@ -89,5 +90,9 @@
         "minWords": 3,
         "maxWords": 10,
         "questionText": "Sắp xếp các từ thành câu hoàn chỉnh:"
+    },
+    "sentenceCompletion": {
+        "minWordLength": 1,
+        "questionText": "Hoàn thiện câu sau (nhập từ còn thiếu):"
     }
 }
