@@ -14,6 +14,7 @@ import type {
     QuizLength,
     QuestionType,
     MCVariant,
+    NoiseItem,
 } from '@/types';
 import { generateQuestionId, generateQuizId } from './hashUtils';
 import { MC_CONFIG, MATCHING_CONFIG, FILL_BLANK_CONFIG, SENTENCE_ARRANGEMENT_CONFIG, QUIZ_LENGTHS, HSK_WEIGHTS, QUESTION_TYPE_WEIGHTS, getQuestionText } from '@/config';
@@ -175,6 +176,60 @@ export function generateMultipleChoice(
 }
 
 /**
+ * Generate noise items for matching question
+ * For every 3 records, add 1 noise item (randomly word, pinyin, or meaning)
+ */
+function generateNoiseItems(
+    vocabulary: VocabularyEntry[],
+    selectedIds: Set<string>,
+    noiseCount: number
+): NoiseItem[] {
+    // Get vocabulary entries that are NOT in the selected items
+    const availableForNoise = vocabulary.filter(v => !selectedIds.has(v.id));
+
+    if (availableForNoise.length === 0) {
+        return [];
+    }
+
+    const noiseItems: NoiseItem[] = [];
+    const noiseTypes: Array<'word' | 'pinyin' | 'meaning'> = ['word', 'pinyin', 'meaning'];
+    const usedNoiseEntries = new Set<string>();
+
+    for (let i = 0; i < noiseCount && availableForNoise.length > usedNoiseEntries.size; i++) {
+        // Get a random entry that hasn't been used for noise yet
+        const remainingForNoise = availableForNoise.filter(v => !usedNoiseEntries.has(v.id));
+        if (remainingForNoise.length === 0) break;
+
+        const noiseEntry = remainingForNoise[Math.floor(Math.random() * remainingForNoise.length)];
+        usedNoiseEntries.add(noiseEntry.id);
+
+        // Randomly select noise type
+        const noiseType = noiseTypes[Math.floor(Math.random() * noiseTypes.length)];
+
+        let noiseValue: string;
+        switch (noiseType) {
+            case 'word':
+                noiseValue = noiseEntry.word;
+                break;
+            case 'pinyin':
+                noiseValue = noiseEntry.pinyin;
+                break;
+            case 'meaning':
+                noiseValue = noiseEntry.meaning[0];
+                break;
+        }
+
+        noiseItems.push({
+            id: `noise-${noiseEntry.id}-${noiseType}`,
+            type: noiseType,
+            value: noiseValue,
+        });
+    }
+
+    return noiseItems;
+}
+
+/**
  * Generate a matching question with random item count
  */
 export function generateMatching(
@@ -203,6 +258,7 @@ export function generateMatching(
 
     // Select random entries based on target count
     const selected = selectRandom(available, targetCount);
+    const selectedIds = new Set(selected.map(s => s.id));
 
     const items: MatchingItem[] = selected.map(entry => ({
         id: entry.id,
@@ -214,13 +270,40 @@ export function generateMatching(
         exampleMeaning: entry.exampleMeaning || '',
     }));
 
+    // Generate noise items: 1 noise per 3 correct items (each record has 3 items: word, pinyin, meaning)
+    // So for targetCount records with 3 items each = targetCount noise items
+    const totalCorrectItems = targetCount * 3;
+    const noiseCount = Math.floor(totalCorrectItems / 3);
+    const noiseItems = generateNoiseItems(vocabulary, selectedIds, noiseCount);
+
+    // Prepare shuffled arrays including noise items
+    const allWords = [...items.map(i => i.word)];
+    const allPinyins = [...items.map(i => i.pinyin)];
+    const allMeanings = [...items.map(i => i.meaning)];
+
+    // Add noise items to their respective arrays
+    noiseItems.forEach(noise => {
+        switch (noise.type) {
+            case 'word':
+                allWords.push(noise.value);
+                break;
+            case 'pinyin':
+                allPinyins.push(noise.value);
+                break;
+            case 'meaning':
+                allMeanings.push(noise.value);
+                break;
+        }
+    });
+
     return {
         id: generateQuestionId(),
         type: 'matching',
         items,
-        shuffledWords: shuffle(items.map(i => i.word)),
-        shuffledPinyins: shuffle(items.map(i => i.pinyin)),
-        shuffledMeanings: shuffle(items.map(i => i.meaning)),
+        shuffledWords: shuffle(allWords),
+        shuffledPinyins: shuffle(allPinyins),
+        shuffledMeanings: shuffle(allMeanings),
+        noiseItems,
     };
 }
 

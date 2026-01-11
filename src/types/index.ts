@@ -56,13 +56,20 @@ export interface MatchingItem {
     exampleMeaning: string;   // Dịch - Vietnamese translation of example
 }
 
+export interface NoiseItem {
+    id: string;
+    type: 'word' | 'pinyin' | 'meaning';
+    value: string;
+}
+
 export interface MatchingQuestion {
     id: string;
     type: 'matching';
-    items: MatchingItem[];   // 10 items to match
+    items: MatchingItem[];   // Items to match
     shuffledWords: string[];
     shuffledPinyins: string[];
     shuffledMeanings: string[];
+    noiseItems: NoiseItem[]; // Noise items (1 per 3 records)
 }
 
 export interface FillBlankOption {
@@ -137,6 +144,7 @@ export interface MatchingAnswer {
     }[];
     correctCount: number;
     timeSpent: number;
+    usedHint: boolean;    // Whether the user used the hint (halves score if correct)
 }
 
 export interface FillBlankAnswer {

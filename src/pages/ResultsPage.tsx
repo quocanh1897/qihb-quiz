@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Home, RotateCcw, Share2 } from 'lucide-react';
 import { Layout, PageHeader } from '@/components/common/Layout';
@@ -7,118 +7,141 @@ import { ScoreSummary } from '@/components/results/ScoreSummary';
 import { TimeStats } from '@/components/results/TimeStats';
 import { AnalyticsTable } from '@/components/results/AnalyticsTable';
 import { useQuizStore } from '@/stores/quizStore';
+import { useVocabularyStore } from '@/stores/vocabularyStore';
+import { useSoundEffects } from '@/hooks/useSoundEffects';
 
 export function ResultsPage() {
-  const navigate = useNavigate();
-  const { result, resetQuiz } = useQuizStore();
+    const navigate = useNavigate();
+    const { result, resetQuiz, getLastQuizConfig, startQuiz } = useQuizStore();
+    const { vocabulary } = useVocabularyStore();
+    const { playSound } = useSoundEffects();
+    const [showCelebration, setShowCelebration] = useState(false);
 
-  useEffect(() => {
+    // Play celebration sound effect on page load (completing a quiz is always an achievement!)
+    useEffect(() => {
+        if (result) {
+            playSound('celebration');
+            setShowCelebration(true);
+            setTimeout(() => setShowCelebration(false), 2500); // Match celebration duration
+        }
+    }, []); // Only run once on mount
+
+    useEffect(() => {
+        if (!result) {
+            navigate('/');
+        }
+    }, [result, navigate]);
+
     if (!result) {
-      navigate('/');
+        return null;
     }
-  }, [result, navigate]);
 
-  if (!result) {
-    return null;
-  }
+    const handleNewQuiz = () => {
+        const config = getLastQuizConfig();
+        if (config && vocabulary.length > 0) {
+            // Start a new quiz with the same configuration
+            startQuiz(vocabulary, config.length, config.questionType);
+            navigate('/exam');
+        } else {
+            resetQuiz();
+            navigate('/setup');
+        }
+    };
 
-  const handleNewQuiz = () => {
-    resetQuiz();
-    navigate('/setup');
-  };
+    const handleGoHome = () => {
+        resetQuiz();
+        navigate('/');
+    };
 
-  const handleGoHome = () => {
-    resetQuiz();
-    navigate('/');
-  };
+    const handleShare = async () => {
+        const percentage = Math.round((result.correctCount / result.totalQuestions) * 100);
+        const shareText = `🎓 QIHB-Quiz: Tôi đạt ${percentage}% (${result.correctCount}/${result.totalQuestions} câu đúng) trong bài thi từ vựng HSK3!`;
 
-  const handleShare = async () => {
-    const percentage = Math.round((result.correctCount / result.totalQuestions) * 100);
-    const shareText = `🎓 QIHB-Quiz: Tôi đạt ${percentage}% (${result.correctCount}/${result.totalQuestions} câu đúng) trong bài thi từ vựng HSK3!`;
-    
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: 'Kết quả QIHB-Quiz',
-          text: shareText,
-        });
-      } catch (error) {
-        // User cancelled or error
-      }
-    } else {
-      // Fallback: copy to clipboard
-      try {
-        await navigator.clipboard.writeText(shareText);
-        alert('Đã sao chép kết quả vào clipboard!');
-      } catch (error) {
-        alert(shareText);
-      }
-    }
-  };
+        if (navigator.share) {
+            try {
+                await navigator.share({
+                    title: 'Kết quả QIHB-Quiz',
+                    text: shareText,
+                });
+            } catch (error) {
+                // User cancelled or error
+            }
+        } else {
+            // Fallback: copy to clipboard
+            try {
+                await navigator.clipboard.writeText(shareText);
+                alert('Đã sao chép kết quả vào clipboard!');
+            } catch (error) {
+                alert(shareText);
+            }
+        }
+    };
 
-  return (
-    <Layout>
-      {/* Header Actions */}
-      <div className="flex items-center justify-between mb-6">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleGoHome}
-          icon={<Home size={18} />}
-        >
-          Trang chủ
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleShare}
-          icon={<Share2 size={18} />}
-        >
-          Chia sẻ
-        </Button>
-      </div>
+    return (
+        <Layout>
+            {/* Header Actions */}
+            <div className="flex items-center justify-between mb-6">
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleGoHome}
+                    icon={<Home size={18} />}
+                >
+                    Trang chủ
+                </Button>
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleShare}
+                    icon={<Share2 size={18} />}
+                >
+                    Chia sẻ
+                </Button>
+            </div>
 
-      <PageHeader
-        title="🎉 Hoàn thành!"
-        subtitle="Xem kết quả và phân tích chi tiết bên dưới"
-      />
+            <div className={showCelebration ? 'animate-success-bounce' : ''}>
+                <PageHeader
+                    title="🎉 Hoàn thành!"
+                    subtitle="Xem kết quả và phân tích chi tiết bên dưới"
+                />
+            </div>
 
-      {/* Score Summary */}
-      <div className="mb-6 animate-slide-up">
-        <ScoreSummary result={result} />
-      </div>
+            {/* Score Summary */}
+            <div className="mb-6 animate-slide-up">
+                <ScoreSummary result={result} />
+            </div>
 
-      {/* Time Stats */}
-      <div className="mb-6 animate-slide-up" style={{ animationDelay: '100ms' }}>
-        <TimeStats result={result} />
-      </div>
+            {/* Time Stats */}
+            <div className="mb-6 animate-slide-up" style={{ animationDelay: '100ms' }}>
+                <TimeStats result={result} />
+            </div>
 
-      {/* Analytics Table */}
-      <div className="mb-8 animate-slide-up" style={{ animationDelay: '200ms' }}>
-        <AnalyticsTable frequencyData={result.frequencyData} />
-      </div>
+            {/* Analytics Table */}
+            <div className="mb-8 animate-slide-up" style={{ animationDelay: '200ms' }}>
+                <AnalyticsTable frequencyData={result.frequencyData} />
+            </div>
 
-      {/* Action Buttons */}
-      <div className="flex gap-4 animate-fade-in" style={{ animationDelay: '300ms' }}>
-        <Button
-          variant="secondary"
-          size="lg"
-          fullWidth
-          onClick={handleGoHome}
-          icon={<Home size={20} />}
-        >
-          Về trang chủ
-        </Button>
-        <Button
-          variant="primary"
-          size="lg"
-          fullWidth
-          onClick={handleNewQuiz}
-          icon={<RotateCcw size={20} />}
-        >
-          Làm bài mới
-        </Button>
-      </div>
-    </Layout>
-  );
+            {/* Action Buttons */}
+            <div className="flex gap-4 animate-fade-in" style={{ animationDelay: '300ms' }}>
+                <Button
+                    variant="secondary"
+                    size="lg"
+                    fullWidth
+                    onClick={handleGoHome}
+                    icon={<Home size={20} />}
+                >
+                    Về trang chủ
+                </Button>
+                <Button
+                    variant="primary"
+                    size="lg"
+                    fullWidth
+                    onClick={handleNewQuiz}
+                    icon={<RotateCcw size={20} />}
+                >
+                    Làm bài mới
+                </Button>
+            </div>
+        </Layout>
+    );
 }

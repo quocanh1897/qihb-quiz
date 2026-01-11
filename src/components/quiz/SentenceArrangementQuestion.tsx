@@ -8,6 +8,7 @@ import { Card } from '@/components/common/Card';
 import { SpeakerButton } from '@/components/common/SpeakerButton';
 import type { SentenceArrangementQuestion as SentenceArrangementQuestionType, SentenceArrangementAnswer, SentenceWord } from '@/types';
 import { SENTENCE_ARRANGEMENT_CONFIG } from '@/config';
+import { useSoundEffects } from '@/hooks/useSoundEffects';
 
 interface SentenceArrangementQuestionProps {
     question: SentenceArrangementQuestionType;
@@ -72,6 +73,7 @@ export function SentenceArrangementQuestion({
     isSubmitted,
     existingAnswer,
 }: SentenceArrangementQuestionProps) {
+    const { playSound } = useSoundEffects();
     const [arrangedWords, setArrangedWords] = useState<SentenceWord[]>(() => {
         if (existingAnswer) {
             // Restore order from existing answer
@@ -163,9 +165,10 @@ export function SentenceArrangementQuestion({
     }, [arrangedWords, question.id, questionStartTime, onAnswer, usedHint]);
 
     const handleShowHint = useCallback(() => {
+        playSound('hint');
         setShowHint(true);
         setUsedHint(true);
-    }, []);
+    }, [playSound]);
 
     const activeWord = activeId ? arrangedWords.find(w => w.id === activeId) : null;
 

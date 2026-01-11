@@ -62,8 +62,25 @@ export interface SentenceCompletionConfig {
     questionText: string;
 }
 
+export interface FeedbackSoundConfig {
+    frequencies: number[];
+    type: 'sine' | 'square' | 'sawtooth' | 'triangle';
+    duration: number;
+}
+
+export interface FeedbackConfig {
+    soundEnabled: boolean;
+    soundVolume: number;
+    animationEnabled: boolean;
+    shakeDuration: number;
+    successPulseDuration: number;
+    correctSound: FeedbackSoundConfig;
+    incorrectSound: FeedbackSoundConfig;
+}
+
 export interface QuizConfig {
     speech: SpeechConfig;
+    feedback: FeedbackConfig;
     hskWeights: HSKWeightsConfig;
     questionTypeWeights: QuestionTypeWeightsConfig;
     quizLengths: Record<QuizLength, QuizLengthConfig>;
@@ -79,6 +96,7 @@ export const config: QuizConfig = quizConfig as QuizConfig;
 
 // Convenience exports
 export const SPEECH_CONFIG = config.speech;
+export const FEEDBACK_CONFIG = config.feedback;
 export const HSK_WEIGHTS = config.hskWeights;
 export const QUESTION_TYPE_WEIGHTS = config.questionTypeWeights;
 export const QUIZ_LENGTHS = config.quizLengths;

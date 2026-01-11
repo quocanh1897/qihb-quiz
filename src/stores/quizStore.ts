@@ -22,6 +22,11 @@ import type {
 import { generateQuiz, getQuestionVocabularyIds } from '@/lib/quizGenerator';
 import { saveQuizHistory, updateGlobalWordStats, getWordStats, calculateProgressPoints } from '@/lib/db';
 
+interface QuizConfig {
+    length: QuizLength;
+    questionType?: QuestionType;
+}
+
 interface QuizState {
     currentQuiz: Quiz | null;
     currentQuestionIndex: number;
@@ -30,9 +35,11 @@ interface QuizState {
     questionStartTime: number;
     isSubmitted: boolean;
     result: QuizResult | null;
+    lastQuizConfig: QuizConfig | null;
 
     // Actions
     startQuiz: (vocabulary: VocabularyEntry[], length: QuizLength, questionType?: QuestionType) => void;
+    getLastQuizConfig: () => QuizConfig | null;
     submitAnswer: (answer: Answer) => void;
     nextQuestion: () => void;
     previousQuestion: () => void;
@@ -55,6 +62,7 @@ export const useQuizStore = create<QuizState>((set, get) => ({
     questionStartTime: Date.now(),
     isSubmitted: false,
     result: null,
+    lastQuizConfig: null,
 
     startQuiz: (vocabulary: VocabularyEntry[], length: QuizLength, questionType?: QuestionType) => {
         const quiz = generateQuiz(vocabulary, length, questionType);
@@ -92,7 +100,12 @@ export const useQuizStore = create<QuizState>((set, get) => ({
             questionStartTime: Date.now(),
             isSubmitted: false,
             result: null,
+            lastQuizConfig: { length, questionType },
         });
+    },
+
+    getLastQuizConfig: () => {
+        return get().lastQuizConfig;
     },
 
     submitAnswer: (answer: Answer) => {
@@ -199,11 +212,13 @@ export const useQuizStore = create<QuizState>((set, get) => ({
     },
 
     previousQuestion: () => {
-        const { currentQuestionIndex } = get();
-        if (currentQuestionIndex > 0) {
+        const { currentQuiz, currentQuestionIndex, answers } = get();
+        if (currentQuestionIndex > 0 && currentQuiz) {
+            const prevQuestion = currentQuiz.questions[currentQuestionIndex - 1];
+            const isAnswered = answers.some(a => a.questionId === prevQuestion.id);
             set({
                 currentQuestionIndex: currentQuestionIndex - 1,
-                isSubmitted: true, // Previous questions are always "submitted"
+                isSubmitted: isAnswered, // Only set as submitted if actually answered
             });
         }
     },
@@ -266,7 +281,9 @@ export const useQuizStore = create<QuizState>((set, get) => ({
                 sentenceCompletionTotalTime += answer.timeSpent;
                 sentenceCompletionCount++;
             } else {
-                correctCount += answer.correctCount;
+                // Matching question: if hint was used, halve the score
+                const matchingScore = answer.usedHint ? answer.correctCount * 0.5 : answer.correctCount;
+                correctCount += matchingScore;
                 matchingTotalTime += answer.timeSpent;
                 matchingCount++;
             }
@@ -365,6 +382,7 @@ export const useQuizStore = create<QuizState>((set, get) => ({
     },
 
     resetQuiz: () => {
+        const { lastQuizConfig } = get();
         set({
             currentQuiz: null,
             currentQuestionIndex: 0,
@@ -373,6 +391,7 @@ export const useQuizStore = create<QuizState>((set, get) => ({
             questionStartTime: Date.now(),
             isSubmitted: false,
             result: null,
+            lastQuizConfig, // Preserve the config for "Làm bài mới"
         });
     },
 

@@ -92,8 +92,11 @@ export default {
         "fade-in": "fadeIn 0.3s ease-out",
         "slide-up": "slideUp 0.4s ease-out",
         "scale-in": "scaleIn 0.2s ease-out",
-        shake: "shake 0.5s ease-in-out",
+        shake: "shake 0.8s ease-in-out",
         "bounce-soft": "bounceSoft 0.5s ease-out",
+        "success-pulse": "successPulse 0.5s ease-out",
+        "success-bounce": "successBounce 0.5s ease-out",
+        "error-flash": "errorFlash 0.6s ease-out",
       },
       keyframes: {
         fadeIn: {
@@ -109,14 +112,71 @@ export default {
           "100%": { opacity: "1", transform: "scale(1)" },
         },
         shake: {
-          "0%, 100%": { transform: "translateX(0)" },
-          "10%, 30%, 50%, 70%, 90%": { transform: "translateX(-4px)" },
-          "20%, 40%, 60%, 80%": { transform: "translateX(4px)" },
+          "0%, 100%": { transform: "translateX(0) rotate(0deg)" },
+          "8%": { transform: "translateX(-16px) rotate(-2deg)" },
+          "16%": { transform: "translateX(16px) rotate(2deg)" },
+          "24%": { transform: "translateX(-14px) rotate(-2deg)" },
+          "32%": { transform: "translateX(14px) rotate(2deg)" },
+          "40%": { transform: "translateX(-12px) rotate(-1.5deg)" },
+          "48%": { transform: "translateX(12px) rotate(1.5deg)" },
+          "56%": { transform: "translateX(-10px) rotate(-1deg)" },
+          "64%": { transform: "translateX(10px) rotate(1deg)" },
+          "72%": { transform: "translateX(-6px) rotate(-0.5deg)" },
+          "80%": { transform: "translateX(6px) rotate(0.5deg)" },
+          "88%": { transform: "translateX(-3px) rotate(0deg)" },
+          "94%": { transform: "translateX(3px) rotate(0deg)" },
         },
         bounceSoft: {
           "0%": { transform: "scale(1)" },
           "50%": { transform: "scale(1.05)" },
           "100%": { transform: "scale(1)" },
+        },
+        successPulse: {
+          "0%": {
+            boxShadow: "0 0 0 0 rgba(86, 125, 88, 0.7)",
+            transform: "scale(1)",
+          },
+          "30%": {
+            boxShadow: "0 0 0 15px rgba(86, 125, 88, 0.3)",
+            transform: "scale(1.02)",
+          },
+          "100%": {
+            boxShadow: "0 0 0 25px rgba(86, 125, 88, 0)",
+            transform: "scale(1)",
+          },
+        },
+        successBounce: {
+          "0%": { transform: "scale(1)" },
+          "25%": { transform: "scale(1.03)" },
+          "50%": { transform: "scale(0.98)" },
+          "75%": { transform: "scale(1.01)" },
+          "100%": { transform: "scale(1)" },
+        },
+        errorFlash: {
+          "0%": {
+            backgroundColor: "rgba(239, 68, 68, 0)",
+            borderColor: "rgba(239, 68, 68, 0)",
+          },
+          "12%": {
+            backgroundColor: "rgba(239, 68, 68, 0.25)",
+            borderColor: "rgba(239, 68, 68, 0.8)",
+          },
+          "24%": {
+            backgroundColor: "rgba(239, 68, 68, 0.05)",
+            borderColor: "rgba(239, 68, 68, 0.3)",
+          },
+          "36%": {
+            backgroundColor: "rgba(239, 68, 68, 0.2)",
+            borderColor: "rgba(239, 68, 68, 0.7)",
+          },
+          "48%": {
+            backgroundColor: "rgba(239, 68, 68, 0)",
+            borderColor: "rgba(239, 68, 68, 0)",
+          },
+          "100%": {
+            backgroundColor: "rgba(239, 68, 68, 0)",
+            borderColor: "rgba(239, 68, 68, 0)",
+          },
         },
       },
     },
